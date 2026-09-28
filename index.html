@@ -1,0 +1,1503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>L Unico Fields — Crop Advisory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --soil:#2E2418;
+    --field:#3F6B35;
+    --field-dim:#5c8451;
+    --wheat:#B8860B;
+    --sky:#3E6E7E;
+    --paper:#F6F1E4;
+    --paper-2:#EFE8D5;
+    --ink:#26211B;
+    --ink-soft:#5A5246;
+    --line:#C9BC9C;
+    --danger:#8A3324;
+    --sky-top:#E7C769;
+    --sky-bottom:#F3ECDA;
+    --sun-color:#D9A521;
+    --tree-color:#2B4423;
+    --crop-color:#3F6B35;
+    --cloud-color:rgba(255,255,255,0.75);
+    --star-opacity:0;
+  }
+  :root:not([data-theme="light"]){
+    --paper:#F6F1E4; --paper-2:#EFE8D5; --ink:#26211B; --ink-soft:#5A5246; --line:#C9BC9C;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#1B1712; --paper-2:#221D16; --ink:#EDE6D6; --ink-soft:#B9AF98; --line:#4A4030;
+      --sky-top:#16202E; --sky-bottom:#33251A; --sun-color:#F1E9CF; --tree-color:#2B4A24;
+      --crop-color:#4A7F3E; --cloud-color:rgba(210,210,220,0.28); --star-opacity:0.9;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#1B1712; --paper-2:#221D16; --ink:#EDE6D6; --ink-soft:#B9AF98; --line:#4A4030;
+    --sky-top:#16202E; --sky-bottom:#33251A; --sun-color:#F1E9CF; --tree-color:#2B4A24;
+    --crop-color:#4A7F3E; --cloud-color:rgba(210,210,220,0.28); --star-opacity:0.9;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 22px);}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:'IBM Plex Sans',system-ui,sans-serif;
+    padding-top:calc(env(safe-area-inset-top,0px) + 22px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---- Scroll progress: a field that grows as you read, harvested at the end ---- */
+  .crop-progress{
+    position:fixed; top:env(safe-area-inset-top,0px); left:0; width:100%; height:22px;
+    z-index:60; pointer-events:none; background:var(--paper-2); border-bottom:1px solid var(--line);
+    overflow:hidden;
+  }
+  .crop-progress svg{display:block; width:100%; height:100%;}
+  .crop-progress .cp-stalk{
+    transform-box:fill-box; transform-origin:50% 100%; transform:scaleY(0);
+    transition:transform 0.45s cubic-bezier(.33,1.3,.6,1);
+  }
+  .crop-progress .cp-stem, .crop-progress .cp-leaf{stroke:var(--field); transition:stroke 0.6s ease;}
+  .crop-progress .cp-grain{fill:var(--wheat); transition:fill 0.6s ease;}
+  .crop-progress.cp-harvest .cp-stem, .crop-progress.cp-harvest .cp-leaf{stroke:var(--wheat);}
+  @media (prefers-reduced-motion:reduce){
+    .crop-progress .cp-stalk{transition:none;}
+  }
+  a{color:inherit;}
+
+  .field-bg{
+    position:absolute; inset:0; z-index:0; overflow:hidden; pointer-events:none;
+  }
+  .field-bg svg{width:100%; height:100%; display:block;}
+  .cloud{animation:cloudDrift 80s linear infinite;}
+  .cloud-b{animation-duration:110s; animation-delay:-40s;}
+  .tree-sway{transform-origin:50% 100%; animation:treeSway 6s ease-in-out infinite;}
+  .stalk-sway{transform-origin:50% 100%; animation:stalkSway 3.2s ease-in-out infinite;}
+  .star{opacity:var(--star-opacity); transition:opacity 0.4s;}
+  .drop{opacity:0; animation:dropFall 2.6s ease-in infinite;}
+  @keyframes cloudDrift{from{transform:translateX(-260px);} to{transform:translateX(1860px);}}
+  @keyframes treeSway{0%,100%{transform:rotate(-1.1deg);} 50%{transform:rotate(1.1deg);}}
+  @keyframes stalkSway{0%,100%{transform:rotate(-6deg);} 50%{transform:rotate(6deg);}}
+  @keyframes dropFall{
+    0%{transform:translateY(0); opacity:0;}
+    12%{opacity:0.9;}
+    85%{opacity:0.15;}
+    100%{transform:translateY(70px); opacity:0;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .cloud, .tree-sway, .stalk-sway, .drop{animation:none !important;}
+  }
+
+  .hero{position:relative; z-index:1; min-height:340px; border-bottom:1px solid var(--line); overflow:hidden;}
+  .hero-inner{position:relative; z-index:1; max-width:960px; margin:0 auto; padding:0 20px;}
+
+  .lang-bar{
+    position:relative; z-index:2; border-bottom:1px solid var(--line); background:var(--paper-2);
+  }
+  .lang-bar-inner{
+    max-width:960px; margin:0 auto; padding:9px 20px; display:flex; align-items:center;
+    justify-content:space-between; gap:10px; flex-wrap:wrap;
+  }
+  .lang-bar-label{font-size:0.72rem; color:var(--ink-soft); font-family:'IBM Plex Mono',monospace; letter-spacing:0.03em;}
+  .lang-switch{display:inline-flex; border:1px solid var(--line);}
+  .lang-btn{
+    background:none; border:none; color:var(--ink); font-family:'IBM Plex Sans',sans-serif;
+    font-size:0.86rem; font-weight:500; padding:6px 14px; cursor:pointer;
+  }
+  .lang-btn + .lang-btn{border-left:1px solid var(--line);}
+  .lang-btn.active{background:var(--field); color:#F6F1E4; font-weight:600;}
+  .lang-btn:hover:not(.active){background:var(--paper);}
+  .lang-btn:focus-visible{outline:2px solid var(--wheat); outline-offset:-2px;}
+
+  .wrap{position:relative; z-index:1; max-width:960px; margin:0 auto; padding:0 20px 64px; background:var(--paper);}
+
+  header.mast{
+    border-bottom:2px solid var(--ink);
+    padding:28px 0 18px;
+    display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:12px;
+  }
+  .brand{line-height:0.86;}
+  .brand .l{
+    font-family:'Source Serif 4',serif; font-weight:700; font-size:clamp(2.2rem,6vw,3.4rem);
+    letter-spacing:0.01em; display:block; text-shadow:0 1px 10px var(--paper);
+  }
+  .brand .f{
+    font-family:'Source Serif 4',serif; font-weight:500; font-style:italic; font-size:clamp(1.2rem,3vw,1.7rem);
+    color:var(--field); display:block; margin-top:2px; text-shadow:0 1px 10px var(--paper);
+  }
+  .mast-meta{
+    text-align:right; font-family:'IBM Plex Mono',monospace; font-size:0.72rem;
+    color:var(--ink-soft); line-height:1.5; max-width:230px; text-shadow:0 1px 8px var(--paper);
+  }
+  .theme-toggle{
+    background:none; border:1px solid var(--line); color:var(--ink-soft);
+    font-family:'IBM Plex Mono',monospace; font-size:0.68rem; padding:4px 9px; cursor:pointer;
+  }
+  .theme-toggle:hover{border-color:var(--ink);}
+
+  .tagline{
+    padding:18px 0 26px; border-bottom:1px solid var(--line);
+    font-size:1.02rem; color:var(--ink-soft); max-width:62ch;
+  }
+
+  section{padding:28px 0; border-bottom:1px solid var(--line);}
+  section:last-child{border-bottom:none;}
+  h2{
+    font-family:'Source Serif 4',serif; font-weight:600; font-size:1.3rem; margin:0 0 16px;
+  }
+  .hint{font-size:0.82rem; color:var(--ink-soft); margin:-10px 0 18px;}
+
+  .form-grid{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px 16px;
+  }
+  label{display:block; font-size:0.74rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-soft); margin-bottom:5px;}
+  select, input[type=text], input[type=number]{
+    width:100%; padding:9px 10px; background:var(--paper-2); border:1px solid var(--line);
+    color:var(--ink); font-family:'IBM Plex Sans',sans-serif; font-size:0.92rem;
+  }
+  select:focus, input:focus{outline:2px solid var(--field); outline-offset:1px;}
+
+  input[type=file]{
+    width:100%; padding:9px 10px; background:var(--paper-2); border:1px solid var(--line);
+    color:var(--ink); font-family:'IBM Plex Sans',sans-serif; font-size:0.84rem; margin-bottom:14px;
+  }
+  input[type=file]:focus-visible{outline:2px solid var(--field); outline-offset:1px;}
+  .photo-input-row{display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;}
+  .photo-input-row .btn{margin-top:0; margin-left:0;}
+  .photo-preview-wrap{margin-bottom:14px;}
+  .photo-preview-wrap img{max-width:100%; max-height:320px; border:1px solid var(--line); display:block;}
+  .photo-actions{display:flex; gap:0; margin-bottom:16px;}
+  .photo-actions .btn{margin-top:0;}
+  .photo-actions .btn:disabled{opacity:0.5; cursor:default;}
+
+  .share-actions{display:flex; margin-top:20px; flex-wrap:wrap;}
+  .share-actions .btn{margin-top:0;}
+
+  .mic-btn{
+    background:none; border:1px solid var(--line); color:var(--ink);
+    font-size:1rem; padding:0 14px; cursor:pointer; flex:0 0 auto;
+  }
+  .mic-btn:hover{border-color:var(--ink);}
+  .mic-btn.listening{background:var(--danger); border-color:var(--danger); color:#fff;}
+  .mic-btn:focus-visible{outline:2px solid var(--wheat); outline-offset:2px;}
+
+  .print-only{display:none;}
+
+  @media print{
+    .print-only{display:block !important;}
+    .lang-bar, .hero, #formSection, #photoInput, label[for="photoInput"], .photo-input-row, .photo-preview-wrap,
+    .photo-actions, #photoHint, #askSection, .theme-toggle, .share-actions, .print-hide,
+    .crop-progress{
+      display:none !important;
+    }
+    body{background:#fff; color:#000; padding-top:0;}
+    .wrap{padding:0 8px; max-width:100%;}
+    section{border-bottom:1px solid #999; page-break-inside:avoid;}
+    .entry{page-break-inside:avoid;}
+    a{text-decoration:none; color:#000;}
+    .print-brand{font-family:'Source Serif 4',serif; font-weight:700; font-size:1.6rem; margin:20px 0 4px;}
+    .print-meta{font-family:'IBM Plex Mono',monospace; font-size:0.8rem; color:#333; margin-bottom:18px; border-bottom:1px solid #999; padding-bottom:10px;}
+  }
+
+  .btn{
+    margin-top:20px; background:var(--field); color:#F6F1E4; border:none; padding:11px 22px;
+    font-family:'IBM Plex Sans',sans-serif; font-size:0.9rem; font-weight:600; cursor:pointer;
+    letter-spacing:0.01em;
+  }
+  .btn:hover{background:var(--field-dim);}
+  .btn:focus-visible{outline:2px solid var(--wheat); outline-offset:2px;}
+  .btn.secondary{background:none; border:1px solid var(--line); color:var(--ink); margin-left:10px;}
+  .btn.secondary:hover{border-color:var(--ink);}
+
+  .ledger{display:none;}
+  .ledger.show{display:block;}
+  .entry{
+    display:grid; grid-template-columns:150px 1fr; gap:4px 18px; padding:14px 0; border-top:1px solid var(--line);
+  }
+  .entry:first-of-type{border-top:none;}
+  .entry .k{font-family:'IBM Plex Mono',monospace; font-size:0.72rem; color:var(--wheat); text-transform:uppercase; letter-spacing:0.05em; padding-top:2px;}
+  .entry .v{font-size:0.95rem; line-height:1.55;}
+  .flag{color:var(--danger); font-weight:600;}
+
+  .trend-row{display:flex; align-items:flex-end; gap:6px; height:60px; margin-top:6px;}
+  .trend-bar{flex:1; background:var(--field); opacity:0.75; min-width:4px;}
+  .trend-labels{display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:0.65rem; color:var(--ink-soft); margin-top:4px;}
+
+  .chat-log{
+    min-height:60px; max-height:260px; overflow-y:auto; padding:2px 0 10px;
+  }
+  .msg{margin:10px 0; font-size:0.9rem; line-height:1.5;}
+  .msg .who{font-family:'IBM Plex Mono',monospace; font-size:0.68rem; text-transform:uppercase; color:var(--ink-soft); letter-spacing:0.05em; display:block; margin-bottom:2px;}
+  .msg.assistant{border-left:2px solid var(--field); padding-left:10px;}
+  .chat-form{display:flex; gap:8px; margin-top:6px;}
+  .chat-form input{flex:1;}
+
+  footer{padding:24px 0 40px; font-size:0.75rem; color:var(--ink-soft); font-family:'IBM Plex Mono',monospace;}
+
+  @media (prefers-reduced-motion:no-preference){
+    .entry, .msg{animation:rise 0.25s ease both;}
+  }
+  @keyframes rise{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+</style>
+</head>
+<body>
+
+<div class="crop-progress" id="cropProgress" aria-hidden="true">
+  <svg viewBox="0 0 1920 40" preserveAspectRatio="none">
+    <defs>
+      <symbol id="cpStalk" viewBox="0 0 10 40">
+        <line class="cp-stem" x1="5" y1="40" x2="5" y2="9" stroke="var(--field)" stroke-width="2.2" stroke-linecap="round"/>
+        <path class="cp-leaf" d="M5 24 Q0 20 1 12" stroke="var(--field)" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+        <path class="cp-leaf" d="M5 30 Q10 26 9 18" stroke="var(--field)" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+        <circle class="cp-grain" cx="5" cy="6" r="3" fill="var(--wheat)"/>
+      </symbol>
+    </defs>
+    <g id="cpStalks"></g>
+  </svg>
+</div>
+
+<div class="lang-bar">
+  <div class="lang-bar-inner">
+    <span class="lang-bar-label" id="langBarLabel">Language / மொழி</span>
+    <div class="lang-switch" role="group" aria-label="Language / மொழி">
+      <button type="button" class="lang-btn" id="langEnBtn" data-lang="en">English</button>
+      <button type="button" class="lang-btn" id="langTaBtn" data-lang="ta">தமிழ்</button>
+    </div>
+  </div>
+</div>
+
+<div class="hero">
+<div class="field-bg" aria-hidden="true">
+  <svg viewBox="0 0 1600 520" preserveAspectRatio="xMidYMax slice">
+    <defs>
+      <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="var(--sky-top)"/>
+        <stop offset="100%" stop-color="var(--sky-bottom)"/>
+      </linearGradient>
+      <symbol id="stalk" viewBox="0 0 30 110">
+        <path d="M15 110 L15 18" stroke="var(--crop-color)" stroke-width="5" stroke-linecap="round" fill="none"/>
+        <path d="M15 40 Q-3 28 0 4" stroke="var(--crop-color)" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <path d="M15 58 Q33 46 30 22" stroke="var(--crop-color)" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <circle cx="15" cy="13" r="7" fill="var(--wheat)"/>
+      </symbol>
+      <symbol id="shrub" viewBox="0 0 60 60">
+        <circle cx="18" cy="34" r="17" fill="var(--crop-color)"/>
+        <circle cx="40" cy="30" r="20" fill="var(--crop-color)"/>
+        <circle cx="30" cy="46" r="15" fill="var(--crop-color)"/>
+      </symbol>
+      <symbol id="tree" viewBox="0 0 100 160">
+        <rect x="45" y="95" width="10" height="65" fill="var(--tree-color)"/>
+        <circle cx="50" cy="66" r="46" fill="var(--tree-color)"/>
+      </symbol>
+    </defs>
+
+    <rect width="1600" height="520" fill="url(#skyGrad)"/>
+
+    <g style="opacity:var(--star-opacity)">
+      <circle class="star" cx="90" cy="40" r="1.6" fill="#fff"/>
+      <circle class="star" cx="230" cy="90" r="1.2" fill="#fff"/>
+      <circle class="star" cx="410" cy="35" r="1.8" fill="#fff"/>
+      <circle class="star" cx="560" cy="70" r="1.3" fill="#fff"/>
+      <circle class="star" cx="950" cy="45" r="1.6" fill="#fff"/>
+      <circle class="star" cx="1080" cy="95" r="1.2" fill="#fff"/>
+      <circle class="star" cx="1420" cy="55" r="1.7" fill="#fff"/>
+      <circle class="star" cx="1550" cy="100" r="1.3" fill="#fff"/>
+    </g>
+
+    <circle cx="1310" cy="85" r="50" fill="var(--sun-color)"/>
+
+    <g class="cloud"><ellipse cx="190" cy="65" rx="80" ry="22" fill="var(--cloud-color)"/><ellipse cx="255" cy="73" rx="52" ry="18" fill="var(--cloud-color)"/></g>
+    <g class="cloud cloud-b"><ellipse cx="740" cy="45" rx="62" ry="18" fill="var(--cloud-color)"/><ellipse cx="792" cy="53" rx="40" ry="14" fill="var(--cloud-color)"/></g>
+
+    <use href="#tree" x="30"   y="300" width="110" height="176" class="tree-sway" style="animation-delay:-1s"/>
+    <use href="#tree" x="310"  y="330" width="80"  height="128" class="tree-sway" style="animation-delay:-3s"/>
+    <use href="#tree" x="1130" y="320" width="90"  height="144" class="tree-sway" style="animation-delay:-2.4s"/>
+    <use href="#tree" x="1330" y="295" width="115" height="184" class="tree-sway" style="animation-delay:-3.6s"/>
+    <use href="#tree" x="1510" y="335" width="75"  height="120" class="tree-sway" style="animation-delay:-1.8s"/>
+
+    <rect x="0" y="420" width="1600" height="100" fill="var(--tree-color)" opacity="0.16"/>
+
+    <use href="#stalk" x="20"   y="380" width="30" height="100" class="stalk-sway" style="animation-delay:-0.2s"/>
+    <use href="#shrub" x="80"   y="400" width="60" height="60"  class="tree-sway"  style="animation-delay:-1.6s"/>
+    <use href="#stalk" x="170"  y="384" width="30" height="100" class="stalk-sway" style="animation-delay:-1.1s"/>
+    <use href="#stalk" x="240"  y="378" width="30" height="100" class="stalk-sway" style="animation-delay:-0.6s"/>
+    <use href="#stalk" x="450"  y="382" width="30" height="100" class="stalk-sway" style="animation-delay:-1.8s"/>
+    <use href="#shrub" x="510"  y="402" width="60" height="60"  class="tree-sway"  style="animation-delay:-0.8s"/>
+    <use href="#stalk" x="600"  y="380" width="30" height="100" class="stalk-sway" style="animation-delay:-2.4s"/>
+    <use href="#stalk" x="900"  y="382" width="30" height="100" class="stalk-sway" style="animation-delay:-0.9s"/>
+    <use href="#stalk" x="970"  y="378" width="30" height="100" class="stalk-sway" style="animation-delay:-2.2s"/>
+    <use href="#shrub" x="1040" y="400" width="60" height="60"  class="tree-sway"  style="animation-delay:-2.9s"/>
+    <use href="#stalk" x="1230" y="380" width="30" height="100" class="stalk-sway" style="animation-delay:-0.4s"/>
+    <use href="#stalk" x="1370" y="384" width="30" height="100" class="stalk-sway" style="animation-delay:-1.5s"/>
+    <use href="#stalk" x="1470" y="378" width="30" height="100" class="stalk-sway" style="animation-delay:-2.8s"/>
+    <use href="#stalk" x="1560" y="382" width="30" height="100" class="stalk-sway" style="animation-delay:-0.7s"/>
+
+    <g>
+      <circle class="drop" cx="255"  cy="360" r="5" fill="var(--sky)" style="animation-delay:0s"/>
+      <circle class="drop" cx="465"  cy="358" r="4" fill="var(--sky)" style="animation-delay:0.6s"/>
+      <circle class="drop" cx="915"  cy="360" r="5" fill="var(--sky)" style="animation-delay:1.2s"/>
+      <circle class="drop" cx="1245" cy="358" r="4" fill="var(--sky)" style="animation-delay:1.8s"/>
+      <circle class="drop" cx="1385" cy="360" r="5" fill="var(--sky)" style="animation-delay:0.3s"/>
+    </g>
+  </svg>
+</div>
+
+  <div class="hero-inner">
+    <header class="mast">
+      <div class="brand">
+        <span class="l">L UNICO</span>
+        <span class="f">Fields</span>
+      </div>
+      <div class="mast-meta">
+        <button class="theme-toggle" id="themeBtn" type="button">toggle theme</button>
+      </div>
+    </header>
+
+    <p class="tagline" id="taglineText">Tell the field what's growing, where, and in what soil — get irrigation, fertilizer, pest, and market guidance drawn from Tamil Nadu's agro-climatic patterns. The plot form and advisory ledger work with no signal; asking the field directly needs a connection.</p>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="print-only" id="printHeader">
+    <div class="print-brand">L UNICO Fields</div>
+    <div class="print-meta" id="printMeta"></div>
+  </div>
+
+  <section id="formSection">
+    <h2 id="plotHeading">Your plot</h2>
+    <div class="form-grid">
+      <div>
+        <label for="district" id="labelDistrict">District</label>
+        <select id="district"></select>
+      </div>
+      <div>
+        <label for="crop" id="labelCrop">Crop</label>
+        <select id="crop"></select>
+      </div>
+      <div>
+        <label for="season" id="labelSeason">Season</label>
+        <select id="season">
+          <option value="kharif" id="optSeasonKharif">Kharif (Jun–Sep)</option>
+          <option value="rabi" id="optSeasonRabi">Rabi (Oct–Jan)</option>
+          <option value="summer" id="optSeasonSummer">Summer (Feb–May)</option>
+        </select>
+      </div>
+      <div>
+        <label for="soil" id="labelSoil">Soil type</label>
+        <select id="soil">
+          <option value="alluvial" id="optSoilAlluvial">Alluvial</option>
+          <option value="red" id="optSoilRed">Red loam</option>
+          <option value="black" id="optSoilBlack">Black cotton</option>
+          <option value="sandy" id="optSoilSandy">Sandy coastal</option>
+          <option value="laterite" id="optSoilLaterite">Laterite</option>
+        </select>
+      </div>
+      <div>
+        <label for="stage" id="labelStage">Growth stage</label>
+        <select id="stage">
+          <option value="sowing" id="optStageSowing">Sowing / land prep</option>
+          <option value="vegetative" id="optStageVegetative">Vegetative</option>
+          <option value="flowering" id="optStageFlowering">Flowering</option>
+          <option value="maturity" id="optStageMaturity">Maturity / near harvest</option>
+        </select>
+      </div>
+      <div>
+        <label for="rainfall" id="labelRainfall">Recent rainfall (mm, last 7 days)</label>
+        <input type="number" id="rainfall" min="0" max="400" value="20">
+      </div>
+    </div>
+    <button class="btn" id="genBtn" type="button">Get advisory</button>
+  </section>
+
+  <section id="ledgerSection" style="display:none;">
+    <h2 id="ledgerHeading">Advisory ledger</h2>
+    <p class="hint" id="ledgerContext"></p>
+    <div class="ledger" id="ledger"></div>
+    <div class="share-actions" id="shareActions">
+      <button class="btn" id="shareWhatsAppBtn" type="button">Share via WhatsApp</button>
+      <button class="btn secondary" id="savePdfBtn" type="button">Save as PDF</button>
+    </div>
+  </section>
+
+  <section id="trendSection" style="display:none;">
+    <h2><span id="trendHeading">Market price trend</span> <span id="trendLabel">— mock 6-week view</span></h2>
+    <p class="hint" id="trendHint">Illustrative only.</p>
+
+    <div class="trend-row" id="trendBars"></div>
+    <div class="trend-labels" id="trendLabels"></div>
+    <p class="hint" id="liveMandiInfo" style="margin-top:14px;"></p>
+  </section>
+
+  <section id="photoSection">
+    <h2 id="photoHeading">Photo-based pest &amp; disease check</h2>
+    <p class="hint" id="photoHint">Upload a close-up photo of an affected leaf or stem for a quick pest/disease read — best in good light, without blur.</p>
+
+    <label for="photoInput" id="labelPhoto">Leaf / plant photo</label>
+    <div class="photo-input-row">
+      <input type="file" id="photoInput" accept="image/*">
+      <button class="btn secondary" id="photoCameraBtn" type="button">Take photo</button>
+      <input type="file" id="photoCameraInput" accept="image/*" capture="environment" style="display:none;">
+    </div>
+
+    <div class="photo-preview-wrap" id="photoPreviewWrap" style="display:none;">
+      <img id="photoPreviewImg" alt="">
+    </div>
+
+    <div class="photo-actions">
+      <button class="btn" id="photoAnalyzeBtn" type="button" disabled>Analyze photo</button>
+      <button class="btn secondary" id="photoClearBtn" type="button">Clear</button>
+    </div>
+
+    <div id="photoResult"></div>
+  </section>
+
+  <section id="askSection">
+    <h2 id="askHeading">Ask the field</h2>
+    <p class="hint" id="askHint">Type a question about your selected crop — irrigation, fertilizer, pest, price, or weather.</p>
+
+    <div class="chat-log" id="chatLog"></div>
+    <form class="chat-form" id="chatForm">
+      <input type="text" id="chatInput" placeholder="e.g. when should I irrigate next?" autocomplete="off">
+      <button type="button" class="mic-btn" id="voiceBtn" aria-label="Voice input">&#127908;</button>
+      <button class="btn" type="submit" id="chatSubmitBtn" style="margin-top:0;">Ask</button>
+    </form>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  function L(en, ta){ return { en: en, ta: ta }; }
+
+  // ---------- Language ----------
+  var LANG_KEY = 'lunico_lang';
+  function getStoredLang(){
+    try { return localStorage.getItem(LANG_KEY) || ''; } catch(e){ return ''; }
+  }
+  function setStoredLang(l){
+    try { localStorage.setItem(LANG_KEY, l); } catch(e){ /* in-memory only this session */ }
+  }
+  var lang = getStoredLang() || 'en';
+
+  // ---------- Data ----------
+  var DISTRICTS = {
+    "Thanjavur":"delta", "Tiruvarur":"delta", "Nagapattinam":"delta", "Cuddalore":"delta",
+    "Tiruchirappalli":"dry", "Madurai":"dry", "Virudhunagar":"dry", "Dindigul":"dry",
+    "Coimbatore":"western", "Erode":"western", "Tiruppur":"western", "Salem":"western",
+    "The Nilgiris":"hilly", "Theni":"hilly",
+    "Kanyakumari":"coastal", "Ramanathapuram":"coastal", "Thoothukudi":"coastal", "Chennai":"coastal",
+    "Vellore":"dry", "Villupuram":"dry", "Tiruvannamalai":"dry", "Namakkal":"western"
+  };
+
+  var DISTRICT_LABELS = {
+    "Thanjavur": L("Thanjavur","தஞ்சாவூர்"),
+    "Tiruvarur": L("Tiruvarur","திருவாரூர்"),
+    "Nagapattinam": L("Nagapattinam","நாகப்பட்டினம்"),
+    "Cuddalore": L("Cuddalore","கடலூர்"),
+    "Tiruchirappalli": L("Tiruchirappalli","திருச்சிராப்பள்ளி"),
+    "Madurai": L("Madurai","மதுரை"),
+    "Virudhunagar": L("Virudhunagar","விருதுநகர்"),
+    "Dindigul": L("Dindigul","திண்டுக்கல்"),
+    "Coimbatore": L("Coimbatore","கோயம்புத்தூர்"),
+    "Erode": L("Erode","ஈரோடு"),
+    "Tiruppur": L("Tiruppur","திருப்பூர்"),
+    "Salem": L("Salem","சேலம்"),
+    "The Nilgiris": L("The Nilgiris","நீலகிரி"),
+    "Theni": L("Theni","தேனி"),
+    "Kanyakumari": L("Kanyakumari","கன்னியாகுமரி"),
+    "Ramanathapuram": L("Ramanathapuram","இராமநாதபுரம்"),
+    "Thoothukudi": L("Thoothukudi","தூத்துக்குடி"),
+    "Chennai": L("Chennai","சென்னை"),
+    "Vellore": L("Vellore","வேலூர்"),
+    "Villupuram": L("Villupuram","விழுப்புரம்"),
+    "Tiruvannamalai": L("Tiruvannamalai","திருவண்ணாமலை"),
+    "Namakkal": L("Namakkal","நாமக்கல்")
+  };
+
+  var SOIL_LABELS = {
+    alluvial: L("Alluvial","வண்டல் மண்"),
+    red: L("Red loam","சிவப்பு மண்"),
+    black: L("Black cotton","கரிசல் மண்"),
+    sandy: L("Sandy coastal","மணல் கடலோர மண்"),
+    laterite: L("Laterite","லேட்டரைட் மண்")
+  };
+
+  var SEASON_LABELS = {
+    kharif: L("Kharif (Jun–Sep)","கார் பருவம் (ஜூன்–செப்.)"),
+    rabi: L("Rabi (Oct–Jan)","பின் பருவம் (அக்.–ஜன.)"),
+    summer: L("Summer (Feb–May)","கோடைக் காலம் (பிப்.–மே)")
+  };
+
+  var STAGE_LABELS = {
+    sowing: L("Sowing / land prep","விதைப்பு / நிலம் தயாரிப்பு"),
+    vegetative: L("Vegetative","தாவர வளர்ச்சி நிலை"),
+    flowering: L("Flowering","பூக்கும் நிலை"),
+    maturity: L("Maturity / near harvest","பக்குவம் / அறுவடை நேரம்")
+  };
+
+  var BAND_LABELS = { low: L("low","குறைவு"), ok: L("ok","போதுமானது"), high: L("high","அதிகம்") };
+
+  var CROPS = {
+    paddy: {
+      label: L("Paddy (Rice)","நெல் (அரிசி)"), zones:["delta","coastal"],
+      irrigation:{
+        low: L("Rainfall is below crop need — flood the field to 5cm standing water within 2 days, especially at panicle initiation.","மழை பயிர் தேவைக்கு குறைவாக உள்ளது — 2 நாட்களுக்குள் வயலில் 5 செ.மீ. தண்ணீர் தேங்கும்படி பாய்ச்சவும், குறிப்பாக கதிர் வரும் நிலையில் இது முக்கியம்."),
+        ok: L("Maintain 3–5cm standing water; current rainfall covers most of the need.","3–5 செ.மீ. தண்ணீர் வயலில் தேங்கி இருக்குமாறு பராமரிக்கவும்; தற்போதைய மழை பெரும்பாலான தேவையை பூர்த்தி செய்கிறது."),
+        high: L("Fields are waterlogged — open field drains for 24–48 hours to prevent root rot.","வயலில் அதிக தண்ணீர் தேங்கியுள்ளது — வேர் அழுகலை தடுக்க 24–48 மணி நேரம் வடிகால் திறந்து வையுங்கள்.")
+      },
+      fertilizer:{
+        alluvial: L("Split urea into 3 doses (basal, tillering, panicle initiation); alluvial soil holds N well.","யூரியாவை 3 பகுதிகளாக பிரித்து இடவும் (அடிச்சாண், கிளை பிரிக்கும் நேரம், கதிர் வரும் நேரம்); வண்டல் மண் நைட்ரஜனை நன்றாக தக்க வைக்கும்."),
+        red: L("Add extra potash at tillering; red soils here run low on K.","கிளை பிரிக்கும் நேரத்தில் கூடுதல் பொட்டாஷ் சேர்க்கவும்; இங்குள்ள சிவப்பு மண்ணில் பொட்டாசியம் குறைவாக உள்ளது."),
+        black: L("Watch for zinc deficiency (yellowing between veins) — apply zinc sulphate if seen.","துத்தநாக குறைபாட்டை கவனிக்கவும் (இலை நரம்புகளுக்கு இடையே மஞ்சள் நிறம்) — தென்பட்டால் ஜிங்க் சல்பேட் இடவும்."),
+        sandy: L("Nitrogen leaches fast — use smaller, more frequent split doses.","மணல் மண்ணில் நைட்ரஜன் வேகமாக வடிந்துவிடும் — சிறிய அளவில், அடிக்கடி பிரித்து இடவும்."),
+        laterite: L("Apply lime before basal fertilizer; laterite soils are often acidic.","அடிச்சாண் உரத்திற்கு முன் சுண்ணாம்பு இடவும்; லேட்டரைட் மண் பொதுவாக அமிலத் தன்மை கொண்டது.")
+      },
+      pest:{
+        sowing: L("Treat seed with recommended fungicide before nursery sowing to prevent blast.","நாற்றங்கால் விதைப்பதற்கு முன் பரிந்துரைக்கப்பட்ட பூஞ்சைக் கொல்லியால் விதையை பதப்படுத்தி, இலைக் கருகல் நோயை தடுக்கவும்."),
+        vegetative: L("Scout for stem borer egg masses weekly; pheromone traps help at this stage.","வாரந்தோறும் தண்டு துளைப்பான் முட்டைக் கூட்டங்களை கவனிக்கவும்; இந்த நிலையில் பெரமோன் கண்ணிகள் உதவியாக இருக்கும்."),
+        flowering: L("Watch for neck blast at panicle emergence — a wet, humid week raises risk sharply.","கதிர் வெளிவரும் போது கழுத்து கருகல் நோயை கவனிக்கவும் — ஈரப்பதம் மிகுந்த வாரம் இதன் ஆபத்தை அதிகரிக்கும்."),
+        maturity: L("Check for brown planthopper at the base of tillers before harvest scheduling.","அறுவடை திட்டமிடுவதற்கு முன் தாள் அடிப்பகுதியில் பழுப்பு தத்துப்பூச்சியை சோதிக்கவும்.")
+      },
+      window: L("Transplant 25–30 day seedlings; harvest 105–135 days after sowing depending on variety.","25–30 நாள் வயது நாற்றுகளை நடவு செய்யவும்; வகையைப் பொறுத்து விதைத்த 105–135 நாட்களுக்குள் அறுவடை செய்யவும்.")
+    },
+    sugarcane: {
+      label: L("Sugarcane","கரும்பு"), zones:["delta","western"],
+      irrigation:{
+        low: L("Irrigate every 7–8 days now — cane is sensitive to moisture stress at this rainfall level.","இப்போது 7–8 நாட்களுக்கு ஒருமுறை பாசனம் செய்யவும் — இந்த மழை அளவில் கரும்பு ஈரப்பத பற்றாக்குறைக்கு உணர்திறன் உடையது."),
+        ok: L("Current soil moisture is adequate; hold irrigation for another 4–5 days.","தற்போதைய மண் ஈரப்பதம் போதுமானது; இன்னும் 4–5 நாட்களுக்கு பாசனத்தை தள்ளி வையுங்கள்."),
+        high: L("Ensure inter-row drains are clear to avoid waterlogging at the root zone.","வேர் பகுதியில் தண்ணீர் தேங்காமல் இருக்க வரிசைகளுக்கு இடையேயான வடிகால்களை தெளிவாக வைத்திருங்கள்.")
+      },
+      fertilizer:{
+        alluvial: L("Standard NPK split works well; alluvial soils here respond strongly to phased nitrogen.","வழக்கமான NPK பிரிவு நன்றாக பலனளிக்கும்; இங்குள்ள வண்டல் மண் படிப்படியான நைட்ரஜனுக்கு நன்கு பதிலளிக்கும்."),
+        red: L("Add farmyard manure at planting — red soils need the organic matter boost.","நடவு செய்யும்போது தொழு உரம் சேர்க்கவும் — சிவப்பு மண்ணுக்கு கரிமப் பொருள் அதிகரிப்பு தேவை."),
+        black: L("Reduce irrigation frequency slightly; black soils retain moisture longer.","பாசன அளவை சற்று குறைக்கவும்; கரிசல் மண் ஈரப்பதத்தை நீண்ட நேரம் தக்க வைக்கும்."),
+        sandy: L("Increase potash — sandy soils under cane lodge easily without it.","பொட்டாஷ் அளவை அதிகரிக்கவும் — இது இல்லாவிட்டால் மணல் மண்ணில் கரும்பு எளிதில் சாய்ந்துவிடும்."),
+        laterite: L("Apply gypsum along with basal dose to correct laterite acidity.","லேட்டரைட் மண்ணின் அமிலத் தன்மையை சரிசெய்ய அடிச்சாண் உரத்துடன் ஜிப்சம் இடவும்.")
+      },
+      pest:{
+        sowing: L("Treat sets with fungicide dip before planting to prevent sett rot.","தண்டு அழுகலை தடுக்க நடவு செய்வதற்கு முன் கரும்பு கண்களை பூஞ்சைக் கொல்லி கரைசலில் நனைக்கவும்."),
+        vegetative: L("Check whorls for early shoot borer damage — dead-heart symptoms need immediate action.","இளம் தளிர் துளைப்பான் சேதத்திற்கு இலைச் சுருளை பரிசோதிக்கவும் — நடுத்தண்டு காய்ந்து போகும் அறிகுறி தென்பட்டால் உடனடியாக நடவடிக்கை எடுக்கவும்."),
+        flowering: L("Cane rarely flowers under cultivation; if it does, yield may be affected — consult local KVK.","பயிரிடப்பட்ட கரும்பில் பூக்கும் நிகழ்வு அரிதே; பூத்தால் விளைச்சல் பாதிக்கப்படலாம் — உங்கள் அருகிலுள்ள KVK-வை அணுகவும்."),
+        maturity: L("Inspect for red rot before scheduling harvest; infected cane should be cut first and isolated.","அறுவடை திட்டமிடுவதற்கு முன் சிவப்பு அழுகலை பரிசோதிக்கவும்; பாதிக்கப்பட்ட கரும்பை முதலில் வெட்டி தனியே வையுங்கள்.")
+      },
+      window: L("Plant Dec–Jan (main season) or Jun–Jul (special season); crop duration 10–12 months.","டிசம்பர்–ஜனவரி (முதன்மை பருவம்) அல்லது ஜூன்–ஜூலை (சிறப்பு பருவம்) நடவு செய்யவும்; பயிர் காலம் 10–12 மாதங்கள்.")
+    },
+    cotton: {
+      label: L("Cotton","பருத்தி"), zones:["dry","western"],
+      irrigation:{
+        low: L("Cotton tolerates moderate stress, but irrigate now if flowering has begun.","பருத்தி மிதமான நீர்ப்பற்றாக்குறையை தாங்கும், ஆனால் பூக்கத் தொடங்கி இருந்தால் இப்போது பாசனம் செய்யவும்."),
+        ok: L("Rainfall is sufficient for this stage — avoid over-irrigating, it encourages excess vegetative growth.","இந்த நிலைக்கு மழை போதுமானது — அதிகமாக பாசனம் செய்யாதீர்கள், அது தேவைக்கு அதிகமான இலை-தண்டு வளர்ச்சியை தூண்டும்."),
+        high: L("Excess moisture raises boll rot risk — ensure the field drains within a day.","அதிக ஈரப்பதம் காய் அழுகல் ஆபத்தை அதிகரிக்கும் — ஒரு நாளுக்குள் வயல் வடிந்துவிடும்படி பார்த்துக் கொள்ளுங்கள்.")
+      },
+      fertilizer:{
+        alluvial: L("Standard NPK schedule; monitor nitrogen — alluvial soil can push too much vegetative growth.","வழக்கமான NPK அட்டவணை; நைட்ரஜனை கவனிக்கவும் — வண்டல் மண் தேவைக்கு அதிகமான இலை வளர்ச்சியை தூண்டலாம்."),
+        red: L("Split nitrogen carefully; red soils here are prone to N loss under heat.","நைட்ரஜனை கவனமாக பிரித்து இடவும்; வெப்பத்தில் இங்குள்ள சிவப்பு மண்ணில் நைட்ரஜன் இழப்பு ஏற்படக்கூடும்."),
+        black: L("Black cotton soil is naturally suited — moderate NPK, focus on potash at boll formation.","கரிசல் மண் இயற்கையாகவே பருத்திக்கு ஏற்றது — மிதமான NPK இடவும், காய் உருவாகும் நேரத்தில் பொட்டாஷ் மீது கவனம் செலுத்துங்கள்."),
+        sandy: L("Frequent light fertigation is better than bulk doses in sandy soil.","மணல் மண்ணில் ஒரே முறையாக அதிக அளவு இடுவதை விட, அடிக்கடி சிறிய அளவில் நீர்-உரம் கலந்து கொடுப்பது சிறந்தது."),
+        laterite: L("Correct acidity with lime before sowing; laterite depresses boll set otherwise.","விதைப்பதற்கு முன் சுண்ணாம்பு இட்டு அமிலத் தன்மையை சரிசெய்யவும்; இல்லையெனில் லேட்டரைட் மண் காய் பிடிப்பை குறைக்கும்.")
+      },
+      pest:{
+        sowing: L("Treat seed against sucking pests before sowing.","விதைப்பதற்கு முன் சாறு உறிஞ்சும் பூச்சிகளுக்கு எதிராக விதையை பதப்படுத்தவும்."),
+        vegetative: L("Scout for whitefly and jassid buildup on the underside of leaves weekly.","வாரந்தோறும் இலைகளின் அடிப்பகுதியில் வெள்ளை ஈ மற்றும் இலை சுருட்டைப் பூச்சி அதிகரிப்பை கவனிக்கவும்."),
+        flowering: L("Pink bollworm risk peaks now — check flowers for larval entry holes.","இளஞ்சிவப்பு காய்ப்புழு ஆபத்து இப்போது உச்சத்தில் உள்ளது — பூக்களில் புழு நுழைந்த துளைகளை சோதிக்கவும்."),
+        maturity: L("Delay picking after rain to avoid lint staining; check bolls for late bollworm damage.","மழைக்குப் பிறகு பஞ்சு கறை படியாமல் இருக்க பறிப்பதை தாமதப்படுத்தவும்; காய்களில் காய்ப்புழு சேதத்தை சோதிக்கவும்.")
+      },
+      window: L("Sow with first reliable rains (Jun–Jul); picking begins ~150 days after sowing, in 3–4 rounds.","முதல் நம்பகமான மழையுடன் (ஜூன்–ஜூலை) விதைக்கவும்; விதைத்த சுமார் 150 நாட்களில் பறிப்பு தொடங்கி 3–4 சுற்றுகளாக நடக்கும்.")
+    },
+    groundnut: {
+      label: L("Groundnut","நிலக்கடலை"), zones:["dry","coastal"],
+      irrigation:{
+        low: L("Groundnut needs consistent moisture at pegging — irrigate now if rainfall stays this low.","வேர் இறங்கும் நேரத்தில் நிலக்கடலைக்கு தொடர்ச்சியான ஈரப்பதம் தேவை — மழை இந்த அளவில் தொடர்ந்தால் இப்போது பாசனம் செய்யவும்."),
+        ok: L("Rainfall is adequate for pegging stage; hold irrigation.","வேர் இறங்கும் நிலைக்கு மழை போதுமானது; பாசனத்தை தள்ளி வையுங்கள்."),
+        high: L("Waterlogging causes pod rot — improve drainage immediately.","தண்ணீர் தேங்குவது காய் அழுகலை ஏற்படுத்தும் — உடனடியாக வடிகால் வசதியை மேம்படுத்துங்கள்.")
+      },
+      fertilizer:{
+        alluvial: L("Apply gypsum at flowering for pod filling; alluvial base fertility is usually sufficient.","காய் நிரம்புவதற்கு பூக்கும் நேரத்தில் ஜிப்சம் இடவும்; வண்டல் மண்ணின் அடிப்படை வளம் பொதுவாக போதுமானது."),
+        red: L("Add gypsum and a light phosphorus dose — red soils here run low on both.","ஜிப்சமும் சிறிதளவு பாஸ்பரசும் சேர்க்கவும் — இங்குள்ள சிவப்பு மண்ணில் இரண்டும் குறைவாக உள்ளன."),
+        black: L("Ensure good drainage before fertilizing; black soil plus heavy fertilizer risks waterlogging.","உரமிடுவதற்கு முன் நல்ல வடிகால் வசதி இருப்பதை உறுதி செய்யவும்; கரிசல் மண்ணுடன் அதிக உரம் தண்ணீர் தேங்கும் ஆபத்தை உண்டாக்கும்."),
+        sandy: L("Split fertilizer into more frequent, smaller doses — sandy soil leaches nutrients fast.","உரத்தை சிறிய அளவில் அடிக்கடி பிரித்து இடவும் — மணல் மண்ணில் ஊட்டச்சத்துக்கள் வேகமாக வடிந்துவிடும்."),
+        laterite: L("Lime plus gypsum combination corrects both acidity and calcium deficiency.","சுண்ணாம்பு மற்றும் ஜிப்சம் இணைந்து அமிலத் தன்மையையும் கால்சியம் குறைபாட்டையும் சரிசெய்யும்.")
+      },
+      pest:{
+        sowing: L("Treat seed with fungicide and Rhizobium culture before sowing.","விதைப்பதற்கு முன் விதையை பூஞ்சைக் கொல்லியுடனும் ரைசோபியம் கலவையுடனும் பதப்படுத்தவும்."),
+        vegetative: L("Watch for leaf miner and early leaf spot on older leaves.","பழைய இலைகளில் இலை சுரங்கப் புழு மற்றும் ஆரம்பகட்ட இலைப்புள்ளி நோயை கவனிக்கவும்."),
+        flowering: L("Scout for thrips at flowering — they spread bud necrosis virus.","பூக்கும் நேரத்தில் நுண் பூச்சிகளை கவனிக்கவும் — அவை மொட்டு கருகல் வைரஸை பரப்பும்."),
+        maturity: L("Check pod maturity by shelling a sample; delayed harvest raises aflatoxin risk in wet soil.","மாதிரி காய்களை உரித்து பக்குவத்தை சரிபார்க்கவும்; ஈரமான மண்ணில் தாமதமான அறுவடை அஃப்லடாக்சின் ஆபத்தை அதிகரிக்கும்.")
+      },
+      window: L("Sow with monsoon onset (Jun) or Jan for summer crop; harvest 100–110 days after sowing.","பருவமழை தொடங்கும் ஜூன் மாதம் அல்லது கோடைப் பயிருக்கு ஜனவரியில் விதைக்கவும்; விதைத்த 100–110 நாட்களில் அறுவடை செய்யவும்.")
+    },
+    maize: {
+      label: L("Maize","மக்காச்சோளம்"), zones:["dry","western"],
+      irrigation:{
+        low: L("Maize is highly sensitive at tasseling — irrigate now if this stage is approaching.","பூங்கொத்து வரும் நிலையில் மக்காச்சோளம் மிகவும் உணர்திறன் உடையது — இந்த நிலை நெருங்கினால் இப்போது பாசனம் செய்யவும்."),
+        ok: L("Current rainfall meets need; recheck in 5 days.","தற்போதைய மழை தேவையை பூர்த்தி செய்கிறது; 5 நாட்களில் மீண்டும் சரிபார்க்கவும்."),
+        high: L("Maize does not tolerate standing water — clear drainage channels today.","மக்காச்சோளம் தண்ணீர் தேங்குவதை தாங்காது — இன்றே வடிகால் வழிகளை சுத்தம் செய்யுங்கள்.")
+      },
+      fertilizer:{
+        alluvial: L("Standard 3-split nitrogen schedule performs well here.","வழக்கமான 3-பிரிவு நைட்ரஜன் அட்டவணை இங்கு நன்றாக பலனளிக்கும்."),
+        red: L("Add zinc sulphate at knee-high stage — common deficiency in red soils under maize.","முழங்கால் உயர அளவு நிலையில் ஜிங்க் சல்பேட் சேர்க்கவும் — மக்காச்சோளத்திற்கான சிவப்பு மண்ணில் இது பொதுவான குறைபாடு."),
+        black: L("Moderate nitrogen; black soil's native fertility reduces top-up need.","மிதமான நைட்ரஜன் இடவும்; கரிசல் மண்ணின் இயற்கை வளம் கூடுதல் உரம் தேவையை குறைக்கும்."),
+        sandy: L("Increase split frequency; nitrogen loss is faster in sandy fields.","பிரித்து இடும் எண்ணிக்கையை அதிகரிக்கவும்; மணல் வயல்களில் நைட்ரஜன் இழப்பு வேகமாக நடக்கும்."),
+        laterite: L("Apply lime pre-sowing; acidic laterite limits nutrient uptake otherwise.","விதைப்பதற்கு முன் சுண்ணாம்பு இடவும்; இல்லையெனில் அமில லேட்டரைட் மண் ஊட்டச்சத்து உறிஞ்சுதலை கட்டுப்படுத்தும்.")
+      },
+      pest:{
+        sowing: L("Treat seed against soil-borne fungal rot before sowing.","விதைப்பதற்கு முன் மண் வழி பரவும் பூஞ்சை அழுகலுக்கு எதிராக விதையை பதப்படுத்தவும்."),
+        vegetative: L("Scout whorls for fall armyworm frass — a fast-spreading pest in TN maize belts.","இலைச் சுருள்களில் இராணுவப் புழு எச்சத்தை கவனிக்கவும் — தமிழ்நாடு மக்காச்சோள பகுதிகளில் வேகமாக பரவும் பூச்சி இது."),
+        flowering: L("Check tassels and silks for borer entry; this is the most yield-critical window.","பூங்கொத்து மற்றும் கூந்தலில் துளைப்பான் நுழைவை சோதிக்கவும்; இது விளைச்சலுக்கு மிக முக்கியமான நேரம்."),
+        maturity: L("Monitor grain moisture; delayed harvest in humid weather raises aflatoxin risk.","தானிய ஈரப்பதத்தை கண்காணிக்கவும்; ஈரப்பதமான வானிலையில் தாமதமான அறுவடை அஃப்லடாக்சின் ஆபத்தை அதிகரிக்கும்.")
+      },
+      window: L("Sow Jun–Jul (kharif) or Oct (rabi); harvest ~100–120 days after sowing.","ஜூன்–ஜூலை (கார் பருவம்) அல்லது அக்டோபர் (பின் பருவம்) விதைக்கவும்; விதைத்த சுமார் 100–120 நாட்களில் அறுவடை செய்யவும்.")
+    },
+    ragi: {
+      label: L("Ragi / Millets","கேழ்வரகு / சிறுதானியங்கள்"), zones:["dry","hilly"],
+      irrigation:{
+        low: L("Millets are drought-hardy — current rainfall is likely sufficient even at this level.","சிறுதானியங்கள் வறட்சியை தாங்கும் தன்மை கொண்டவை — இந்த அளவு மழையும் போதுமானதாக இருக்கலாம்."),
+        ok: L("No irrigation needed; millets thrive on residual moisture.","பாசனம் தேவையில்லை; மீதமுள்ள மண் ஈரப்பதத்திலேயே சிறுதானியங்கள் நன்றாக வளரும்."),
+        high: L("Ensure the field doesn't pool water — millets are intolerant of waterlogging.","வயலில் தண்ணீர் தேங்காமல் பார்த்துக் கொள்ளுங்கள் — சிறுதானியங்கள் தண்ணீர் தேக்கத்தை தாங்காது.")
+      },
+      fertilizer:{
+        alluvial: L("Light nitrogen top-up at tillering is usually enough.","கிளை பிரிக்கும் நேரத்தில் லேசான நைட்ரஜன் கூடுதலாக இட்டால் பொதுவாக போதுமானது."),
+        red: L("Millets suit red soil well; a modest basal NPK dose is sufficient.","சிவப்பு மண் சிறுதானியங்களுக்கு நன்கு பொருந்தும்; மிதமான அடிச்சாண் NPK அளவு போதுமானது."),
+        black: L("Avoid over-fertilizing; native fertility of black soil often covers millet needs.","அதிகமாக உரமிடுவதை தவிர்க்கவும்; கரிசல் மண்ணின் இயற்கை வளம் பெரும்பாலும் சிறுதானியத் தேவையை பூர்த்தி செய்யும்."),
+        sandy: L("A light, split nitrogen dose prevents early-season deficiency.","லேசாக பிரித்து இடும் நைட்ரஜன் அளவு ஆரம்பகால குறைபாட்டை தடுக்கும்."),
+        laterite: L("Apply lime if soil test shows strong acidity; otherwise minimal input needed.","மண் பரிசோதனையில் அதிக அமிலத் தன்மை தெரிந்தால் சுண்ணாம்பு இடவும்; இல்லையெனில் குறைந்த உரமே தேவை.")
+      },
+      pest:{
+        sowing: L("Treat seed against blast fungus, especially in high-humidity districts.","குறிப்பாக அதிக ஈரப்பதம் உள்ள மாவட்டங்களில் கருகல் பூஞ்சைக்கு எதிராக விதையை பதப்படுத்தவும்."),
+        vegetative: L("Scout for shoot fly damage in the first 3 weeks after sowing.","விதைத்த முதல் 3 வாரங்களில் தளிர் ஈ சேதத்தை கவனிக்கவும்."),
+        flowering: L("Watch for blast lesions on the neck of the earhead during humid spells.","ஈரப்பதமான நாட்களில் கதிர் கழுத்து பகுதியில் கருகல் புள்ளிகளை கவனிக்கவும்."),
+        maturity: L("Bird damage is the main risk near harvest — scaring devices help in open fields.","அறுவடை நேரத்தில் பறவை சேதமே முக்கிய ஆபத்து — திறந்த வெளி வயல்களில் பறவை விரட்டும் சாதனங்கள் உதவும்.")
+      },
+      window: L("Sow with monsoon (Jun–Jul); harvest 100–115 days after sowing.","பருவமழையுடன் (ஜூன்–ஜூலை) விதைக்கவும்; விதைத்த 100–115 நாட்களில் அறுவடை செய்யவும்.")
+    },
+    banana: {
+      label: L("Banana","வாழை"), zones:["delta","western"],
+      irrigation:{
+        low: L("Banana needs steady moisture — irrigate every 4–5 days at this rainfall level.","வாழைக்கு நிலையான ஈரப்பதம் தேவை — இந்த மழை அளவில் 4–5 நாட்களுக்கு ஒருமுறை பாசனம் செய்யவும்."),
+        ok: L("Current moisture is adequate; maintain regular drip schedule.","தற்போதைய ஈரப்பதம் போதுமானது; வழக்கமான சொட்டு நீர் பாசன அட்டவணையை தொடரவும்."),
+        high: L("Waterlogging causes root rot fast — ensure drains are clear within a day.","தண்ணீர் தேங்குவது வேர் அழுகலை வேகமாக ஏற்படுத்தும் — ஒரு நாளுக்குள் வடிகால் தெளிவாக இருப்பதை உறுதி செய்யவும்.")
+      },
+      fertilizer:{
+        alluvial: L("Standard monthly NPK schedule through fertigation works best.","மாதந்தோறும் நீர்-உரம் மூலம் வழக்கமான NPK அட்டவணை சிறந்த பலனளிக்கும்."),
+        red: L("Add extra potash from bunch emergence onward for fruit filling.","குலை வெளிவந்த பிறகு பழம் நிரம்புவதற்கு கூடுதல் பொட்டாஷ் சேர்க்கவும்."),
+        black: L("Watch drainage closely when fertilizing — black soil plus over-watering compounds waterlogging risk.","உரமிடும்போது வடிகாலை உன்னிப்பாக கவனிக்கவும் — கரிசல் மண்ணுடன் அதிக நீர்ப்பாசனம் தண்ணீர் தேக்க ஆபத்தை அதிகரிக்கும்."),
+        sandy: L("Fertigate more frequently in smaller doses; sandy soil under banana loses nutrients fast.","சிறிய அளவில் அடிக்கடி நீர்-உரம் கொடுக்கவும்; மணல் மண்ணில் வாழைக்கு ஊட்டச்சத்து வேகமாக வடிந்துவிடும்."),
+        laterite: L("Apply lime periodically to counter laterite's natural acidity.","லேட்டரைட் மண்ணின் இயற்கை அமிலத் தன்மையை சமன் செய்ய அவ்வப்போது சுண்ணாம்பு இடவும்.")
+      },
+      pest:{
+        sowing: L("Treat rhizomes/suckers against nematodes before planting.","நடவு செய்வதற்கு முன் கிழங்கு/கன்றுகளை நூற்புழுக்களுக்கு எதிராக பதப்படுத்தவும்."),
+        vegetative: L("Scout for banana weevil borer at the pseudostem base monthly.","மாதந்தோறும் தண்டு அடிப்பகுதியில் வாழை வண்டு துளைப்பானை கவனிக்கவும்."),
+        flowering: L("Bag the bunch after emergence to protect from thrips and rain scarring.","குலை வெளிவந்த பிறகு நுண் பூச்சி மற்றும் மழை காயங்களிலிருந்து பாதுகாக்க பையிடவும்."),
+        maturity: L("Monitor for bunch-fall and finger-tip drying before scheduling harvest.","அறுவடை திட்டமிடுவதற்கு முன் குலை விழுதல் மற்றும் காய் நுனி காய்தலை கண்காணிக்கவும்.")
+      },
+      window: L("Plant year-round with irrigation; harvest 11–13 months after planting depending on variety.","பாசன வசதி இருந்தால் ஆண்டு முழுவதும் நடவு செய்யலாம்; வகையைப் பொறுத்து நடவு செய்த 11–13 மாதங்களில் அறுவடை செய்யவும்.")
+    },
+    turmeric: {
+      label: L("Turmeric","மஞ்சள்"), zones:["dry","western"],
+      irrigation:{
+        low: L("Turmeric needs consistent moisture at rhizome initiation — irrigate now if this rainfall persists.","கிழங்கு உருவாகும் நேரத்தில் மஞ்சளுக்கு தொடர்ச்சியான ஈரப்பதம் தேவை — இந்த மழை அளவு தொடர்ந்தால் இப்போது பாசனம் செய்யவும்."),
+        ok: L("Adequate moisture for current stage; maintain existing schedule.","தற்போதைய நிலைக்கு ஈரப்பதம் போதுமானது; தற்போதைய அட்டவணையை தொடரவும்."),
+        high: L("Improve drainage — waterlogging causes rhizome rot within days.","வடிகால் வசதியை மேம்படுத்துங்கள் — தண்ணீர் தேங்கினால் சில நாட்களில் கிழங்கு அழுகிவிடும்.")
+      },
+      fertilizer:{
+        alluvial: L("Standard NPK plus organic manure at planting gives best rhizome yield.","நடவு செய்யும்போது வழக்கமான NPK உடன் கரிம உரம் சேர்த்தால் சிறந்த கிழங்கு விளைச்சல் கிடைக்கும்."),
+        red: L("Add extra potash — red soils here often fall short at rhizome bulking.","கூடுதல் பொட்டாஷ் சேர்க்கவும் — கிழங்கு பருமனாகும் நேரத்தில் இங்குள்ள சிவப்பு மண் பெரும்பாலும் குறைவாக இருக்கும்."),
+        black: L("Ensure raised beds; black soil plus turmeric's water need risks rot without them.","உயர்த்திய பாத்திகள் அமைக்கவும்; இல்லாவிட்டால் கரிசல் மண்ணுடன் மஞ்சளின் நீர் தேவை அழுகல் ஆபத்தை உண்டாக்கும்."),
+        sandy: L("Frequent light fertigation suits turmeric's shallow root zone in sandy soil.","மணல் மண்ணில் மஞ்சளின் மேல்பரப்பு வேர் பகுதிக்கு அடிக்கடி லேசான நீர்-உரம் ஏற்றது."),
+        laterite: L("Lime application pre-planting corrects acidity that limits rhizome size.","நடவுக்கு முன் சுண்ணாம்பு இடுவது கிழங்கு அளவை கட்டுப்படுத்தும் அமிலத் தன்மையை சரிசெய்யும்.")
+      },
+      pest:{
+        sowing: L("Treat rhizomes with fungicide dip before planting to prevent rot.","அழுகலை தடுக்க நடவு செய்வதற்கு முன் கிழங்குகளை பூஞ்சைக் கொல்லி கரைசலில் நனைக்கவும்."),
+        vegetative: L("Scout for leaf spot and rhizome fly in humid weeks.","ஈரப்பதமான வாரங்களில் இலைப்புள்ளி நோய் மற்றும் கிழங்கு ஈயை கவனிக்கவும்."),
+        flowering: L("Turmeric rarely flowers commercially; focus scouting on leaf blotch instead.","வணிக ரீதியாக மஞ்சள் பூப்பது அரிது; அதற்கு பதிலாக இலைக் கரும்புள்ளி நோயை கவனிக்கவும்."),
+        maturity: L("Check rhizome skin colour and dry leaf tips before scheduling harvest.","அறுவடை திட்டமிடுவதற்கு முன் கிழங்கு தோலின் நிறத்தையும் இலை நுனி காய்தலையும் சோதிக்கவும்.")
+      },
+      window: L("Plant Apr–May; harvest 8–9 months after planting when leaves yellow and dry.","ஏப்ரல்–மே மாதங்களில் நடவு செய்யவும்; இலைகள் மஞ்சளாகி காய்ந்த பின் நடவு செய்த 8–9 மாதங்களில் அறுவடை செய்யவும்.")
+    }
+  };
+
+  var PRICE_BASE = {paddy:2100, sugarcane:3200, cotton:6800, groundnut:5900, maize:2050, ragi:3300, banana:1400, turmeric:14500};
+
+  // ---------- UI strings ----------
+  var UI = {
+    tagline: L("Tell the field what's growing, where, and in what soil — get irrigation, fertilizer, pest, and market guidance drawn from Tamil Nadu's agro-climatic patterns. The plot form and advisory ledger work with no signal; asking the field directly needs a connection.",
+               "என்ன பயிர், எந்த இடத்தில், எந்த மண்ணில் என்று சொல்லுங்கள் — தமிழ்நாட்டின் காலநிலை முறைகளின் அடிப்படையில் பாசனம், உரம், பூச்சி, சந்தை விவரங்களை பெறுங்கள். வயல் படிவமும் ஆலோசனை பட்டியலும் நெட்வொர்க் இல்லாமலேயே இயங்கும்; வயலிடம் நேரடியாக கேட்பதற்கு மட்டும் இணைப்பு தேவை."),
+    themeToggle: L("toggle theme","தோற்றத்தை மாற்று"),
+    plotHeading: L("Your plot","உங்கள் வயல்"),
+    labelDistrict: L("District","மாவட்டம்"),
+    labelCrop: L("Crop","பயிர்"),
+    labelSeason: L("Season","பருவம்"),
+    labelSoil: L("Soil type","மண் வகை"),
+    labelStage: L("Growth stage","வளர்ச்சி நிலை"),
+    labelRainfall: L("Recent rainfall (mm, last 7 days)","சமீபத்திய மழை (மி.மீ., கடந்த 7 நாட்கள்)"),
+    genBtn: L("Get advisory","ஆலோசனை பெறவும்"),
+    ledgerHeading: L("Advisory ledger","ஆலோசனை பட்டியல்"),
+    trendHeading: L("Market price trend","சந்தை விலை போக்கு"),
+    trendMock: L("— last 6 weeks (illustrative)","— கடந்த 6 வாரங்கள் (மாதிரி)"),
+    trendHintMock: L("Illustrative trend based on typical seasonal price patterns.","பொதுவான பருவகால விலை மாற்றங்களின் அடிப்படையிலான மாதிரி போக்கு."),
+    askHeading: L("Ask the field","வயலிடம் கேளுங்கள்"),
+    askHint: L("Type a question about your selected crop — irrigation, fertilizer, pest, price, or weather.","உங்கள் பயிரைப் பற்றி கேள்வி கேளுங்கள் — பாசனம், உரம், பூச்சி, விலை அல்லது வானிலை."),
+    chatInputPlaceholder: L("e.g. when should I irrigate next?","எ.கா. அடுத்து எப்போது பாசனம் செய்ய வேண்டும்?"),
+    askBtn: L("Ask","கேளுங்கள்"),
+    entryKeys: {
+      zone: L("Zone fit","மண்டல் தகுதி"),
+      irrigation: L("Irrigation","பாசனம்"),
+      fertilizer: L("Fertilizer","உரம்"),
+      pest: L("Pest watch","பூச்சி கண்காணிப்பு"),
+      window: L("Sowing / harvest","விதைப்பு / அறுவடை"),
+      season: L("Season note","பருவ குறிப்பு")
+    },
+    ledgerContext: L("{crop} · {district} · {soil} soil · {stage} stage · {rainfall}mm rain","{crop} · {district} · {soil} மண் · {stage} நிலை · {rainfall} மி.மீ. மழை"),
+    chatYou: L("You","நீங்கள்"),
+    chatAssistant: L("Field assistant","வயல் உதவியாளர்"),
+    chatThinking: L("thinking…","யோசிக்கிறது…"),
+    answerPrice: L("Check the market trend chart above for the recent price pattern for this crop.","இந்த பயிருக்கான சமீபத்திய விலை போக்குக்கு மேலே உள்ள சந்தை போக்கு விளக்கப்படத்தை பாருங்கள்."),
+    answerWeather: L("Current reading is {mm}mm over 7 days — that puts you in the \u201c{band}\u201d band for irrigation planning.","தற்போதைய அளவீடு கடந்த 7 நாட்களில் {mm} மி.மீ் — இது பாசன திட்டமிடலுக்கு \u201c{band}\u201d பிரிவில் வைக்கிறது."),
+    answerFallback: L("I can help with irrigation, fertilizer, pest watch, market price, or sowing/harvest timing for {crop} — try asking about one of those.","நான் பாசனம், உரம், பூச்சி கண்காணிப்பு, சந்தை விலை, அல்லது {crop}-க்கான விதைப்பு/அறுவடை நேரம் பற்றி உதவ முடியும் — அவற்றில் ஒன்றை கேளுங்கள்."),
+    photoHeading: L("Photo-based pest & disease check","புகைப்படம் மூலம் பூச்சி / நோய் பரிசோதனை"),
+    photoHint: L("Upload a close-up photo of an affected leaf or stem for a quick pest/disease read — best in good light, without blur.","பாதிக்கப்பட்ட இலை அல்லது தண்டின் தெளிவான அருகிலிருந்து எடுத்த புகைப்படத்தை பதிவேற்றி விரைவான பூச்சி/நோய் பரிசோதனை பெறுங்கள் — நல்ல வெளிச்சத்தில், மங்கலின்றி எடுக்கவும்."),
+    labelPhoto: L("Leaf / plant photo","இலை / தாவர புகைப்படம்"),
+    photoAnalyzeBtn: L("Analyze photo","புகைப்படத்தை பரிசோதிக்கவும்"),
+    photoCameraBtn: L("Take photo","புகைப்படம் எடு"),
+    photoClearBtn: L("Clear","அழிக்கவும்"),
+    photoAnalyzing: L("Analyzing photo…","புகைப்படம் பரிசோதிக்கப்படுகிறது…"),
+    photoResultLabel: L("Photo assessment","புகைப்பட மதிப்பீடு"),
+    photoBadFile: L("Couldn't read that file — please choose a photo (JPG/PNG).","அந்த கோப்பை படிக்க முடியவில்லை — JPG/PNG புகைப்படத்தை தேர்ந்தெடுக்கவும்."),
+    photoTooLarge: L("That photo is quite large (over 15MB) — please choose a smaller photo or take a new one at standard quality.","புகைப்படம் மிகப் பெரியது (15MB-க்கு மேல்) — சிறிய புகைப்படத்தை தேர்ந்தெடுக்கவும் அல்லது சாதாரண தரத்தில் புதிதாக எடுக்கவும்."),
+    photoOffline: L("Photo analysis needs an internet connection to reach the advisory service. Meanwhile, here's a local pointer for this crop and stage:","புகைப்பட பரிசோதனைக்கு இணைய இணைப்பு தேவை. அதுவரை, இந்த பயிர் மற்றும் நிலைக்கான உள்ளூர் குறிப்பு இதோ:"),
+    shareWhatsAppBtn: L("Share via WhatsApp","வாட்ஸ்அப் மூலம் பகிரவும்"),
+    savePdfBtn: L("Save as PDF","PDF ஆக சேமிக்கவும்"),
+    printGeneratedOn: L("Generated on","உருவாக்கப்பட்ட தேதி"),
+    voiceInputLabel: L("Voice input","குரல் உள்ளீடு"),
+    voiceListening: L("Listening… tap to stop","கேட்கிறது… நிறுத்த தட்டவும்")
+  };
+
+  function fmt(str, vals){
+    return str.replace(/\{(\w+)\}/g, function(m, k){ return (vals && k in vals) ? vals[k] : m; });
+  }
+
+  function zoneNoteText(district, crop){
+    var inZone = crop.zones.indexOf(DISTRICTS[district]) !== -1;
+    var districtLabel = DISTRICT_LABELS[district] ? DISTRICT_LABELS[district][lang] : district;
+    var cropLabel = crop.label[lang];
+    if (!inZone){
+      var msg = lang === 'ta'
+        ? districtLabel + ' மாவட்டம் ' + cropLabel + ' பயிருக்கு பொதுவான வளர்ப்பு மண்டலத்திற்கு வெளியே உள்ளது — முதலீடு செய்வதற்கு முன் உங்கள் அருகிலுள்ள KVK-வில் உள்ளூர் தகுதியை சரிபார்க்கவும்.'
+        : districtLabel + ' is outside ' + cropLabel + '\u2019s typical growing zone \u2014 double-check local suitability with your nearest KVK before investing.';
+      return '<span class="flag">' + msg + '</span>';
+    }
+    return lang === 'ta'
+      ? districtLabel + ' ' + cropLabel + ' பயிருக்கு ஏற்ற மண்டலத்தில் அமைந்துள்ளது.'
+      : districtLabel + ' sits in a zone well suited to ' + cropLabel.toLowerCase() + '.';
+  }
+
+  function seasonNote(season){
+    var notes = {
+      kharif: L("Monsoon-dependent window — track weekly rainfall closely and adjust the irrigation line above as figures change.","பருவமழையை சார்ந்த காலம் — வாராந்திர மழையை உன்னிப்பாக கண்காணித்து, மேலே உள்ள பாசன குறிப்பை அதற்கேற்ப மாற்றவும்."),
+      rabi: L("Post-monsoon window — residual soil moisture is your main resource; irrigation timing matters more than volume.","பருவமழைக்குப் பிந்தைய காலம் — மீதமுள்ள மண் ஈரப்பதமே உங்கள் முக்கிய வளம்; அளவை விட பாசன நேரமே முக்கியம்."),
+      summer: L("Peak evaporation season — irrigate in early morning or evening to reduce water loss.","அதிக ஆவியாதல் காலம் — நீர் இழப்பை குறைக்க அதிகாலை அல்லது மாலையில் பாசனம் செய்யவும்.")
+    };
+    return notes[season][lang];
+  }
+
+  // ---------- Populate selects ----------
+  var districtSel = document.getElementById('district');
+  var cropSel = document.getElementById('crop');
+
+  function populateSelects(){
+    var prevDistrict = districtSel.value;
+    var prevCrop = cropSel.value;
+
+    districtSel.innerHTML = '';
+    Object.keys(DISTRICTS).sort(function(a,b){
+      return DISTRICT_LABELS[a][lang].localeCompare(DISTRICT_LABELS[b][lang]);
+    }).forEach(function(d){
+      var o = document.createElement('option'); o.value = d; o.textContent = DISTRICT_LABELS[d][lang];
+      districtSel.appendChild(o);
+    });
+    if (prevDistrict) districtSel.value = prevDistrict;
+
+    cropSel.innerHTML = '';
+    Object.keys(CROPS).forEach(function(c){
+      var o = document.createElement('option'); o.value = c; o.textContent = CROPS[c].label[lang];
+      cropSel.appendChild(o);
+    });
+    if (prevCrop) cropSel.value = prevCrop;
+  }
+
+  // ---------- Advisory engine ----------
+  function rainBand(mm){
+    if (mm < 15) return 'low';
+    if (mm <= 60) return 'ok';
+    return 'high';
+  }
+
+  function buildAdvisory(){
+    var district = districtSel.value;
+    var cropKey = cropSel.value;
+    var season = document.getElementById('season').value;
+    var soil = document.getElementById('soil').value;
+    var stage = document.getElementById('stage').value;
+    var rainfall = parseFloat(document.getElementById('rainfall').value) || 0;
+
+    var crop = CROPS[cropKey];
+    var band = rainBand(rainfall);
+
+    var entries = [
+      {k: UI.entryKeys.zone[lang], v: zoneNoteText(district, crop)},
+      {k: UI.entryKeys.irrigation[lang], v: crop.irrigation[band][lang]},
+      {k: UI.entryKeys.fertilizer[lang], v: crop.fertilizer[soil][lang]},
+      {k: UI.entryKeys.pest[lang], v: crop.pest[stage][lang]},
+      {k: UI.entryKeys.window[lang], v: crop.window[lang]},
+      {k: UI.entryKeys.season[lang], v: seasonNote(season)}
+    ];
+
+    var ledger = document.getElementById('ledger');
+    ledger.innerHTML = '';
+    entries.forEach(function(e){
+      var div = document.createElement('div'); div.className = 'entry';
+      div.innerHTML = '<div class="k">'+e.k+'</div><div class="v">'+e.v+'</div>';
+      ledger.appendChild(div);
+    });
+
+    document.getElementById('ledgerContext').textContent = fmt(UI.ledgerContext[lang], {
+      crop: crop.label[lang],
+      district: DISTRICT_LABELS[district] ? DISTRICT_LABELS[district][lang] : district,
+      soil: SOIL_LABELS[soil][lang],
+      stage: STAGE_LABELS[stage][lang],
+      rainfall: rainfall
+    });
+
+    document.getElementById('ledgerSection').style.display = 'block';
+    document.getElementById('ledger').className = 'ledger show';
+
+    renderTrend(cropKey, district);
+    document.getElementById('trendSection').style.display = 'block';
+
+    return {crop: crop, cropKey: cropKey, band: band, soil: soil, stage: stage, district: district};
+  }
+
+  function drawBars(labels, values, unitTitle){
+    var bars = document.getElementById('trendBars');
+    var labelsEl = document.getElementById('trendLabels');
+    bars.innerHTML = ''; labelsEl.innerHTML = '';
+    var max = Math.max.apply(null, values);
+    values.forEach(function(v, i){
+      var bar = document.createElement('div'); bar.className = 'trend-bar';
+      bar.style.height = Math.max(8, Math.round((v/max)*60)) + 'px';
+      bar.title = unitTitle(v);
+      bars.appendChild(bar);
+      var lab = document.createElement('span'); lab.textContent = labels[i];
+      labelsEl.appendChild(lab);
+    });
+  }
+
+  function mockTrendValues(cropKey){
+    var base = PRICE_BASE[cropKey];
+    var seed = cropKey.length;
+    var vals = [];
+    for (var i=0;i<6;i++){
+      var wiggle = Math.sin(seed + i*1.3) * 0.08 + Math.sin(i*0.7)*0.05;
+      vals.push(Math.round(base * (1 + wiggle)));
+    }
+    return vals;
+  }
+
+  function priceUnit(v, illustrative){
+    var suffix = lang === 'ta'
+      ? ('/குவிண்டால்' + (illustrative ? ' (மாதிரி)' : ''))
+      : ('/quintal' + (illustrative ? ' (illustrative)' : ''));
+    return '\u20b9' + v + suffix;
+  }
+
+  function showMockTrend(cropKey){
+    var vals = mockTrendValues(cropKey);
+    drawBars(['W1','W2','W3','W4','W5','W6'], vals, function(v){ return priceUnit(v, true); });
+    document.getElementById('trendLabel').textContent = UI.trendMock[lang];
+    document.getElementById('trendHint').textContent = UI.trendHintMock[lang];
+  }
+
+  function renderTrend(cropKey, district){
+    showMockTrend(cropKey);
+    fetchLiveMandiPrice(cropKey, district);
+  }
+
+  document.getElementById('genBtn').addEventListener('click', function(){
+    lastAdvisory = buildAdvisory();
+    document.getElementById('ledgerSection').scrollIntoView({behavior:'smooth', block:'start'});
+  });
+
+  var lastAdvisory = null;
+
+  // ---------- Gemini (AI-powered advisory chat, via your own proxy) ----------
+  // No API key lives in this file anymore. This page calls YOUR small server-side
+  // proxy (see the accompanying worker.js), which holds the Gemini key as a secret
+  // environment variable and forwards requests to Google. Replace this URL with
+  // your deployed proxy's address once you've set it up.
+  var ADVISORY_PROXY_URL = "https://l-unico-fields-proxy.navin3207u.workers.dev/api/advisory";
+
+  function geminiPrompt(question, advisory){
+    var langName = lang === 'ta' ? 'Tamil' : 'English';
+    var context = 'No plot selected yet.';
+    if (advisory){
+      context = 'Crop: ' + advisory.crop.label.en +
+        ' | District: ' + advisory.district +
+        ' | Soil: ' + SOIL_LABELS[advisory.soil].en +
+        ' | Growth stage: ' + STAGE_LABELS[advisory.stage].en +
+        ' | Rainfall band (last 7 days): ' + advisory.band;
+    }
+    return 'You are a farm advisory assistant for a small farmer in Tamil Nadu, India, ' +
+      'answering questions about irrigation, fertilizer, pest management, harvest timing, ' +
+      'and market prices for their specific plot.\n\n' +
+      'Plot context: ' + context + '\n\n' +
+      'Farmer question: "' + question + '"\n\n' +
+      'Reply in ' + langName + ', in 2-4 short sentences, practical and specific to the ' +
+      'crop/soil/stage/rainfall given above. If the question is unrelated to farming, ' +
+      'gently redirect to farm topics.';
+  }
+
+  function callGemini(question, advisory){
+    if (ADVISORY_PROXY_URL.indexOf('YOUR-WORKER-SUBDOMAIN') > -1){
+      return Promise.reject(new Error('Advisory proxy URL not configured yet'));
+    }
+    return fetch(ADVISORY_PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: geminiPrompt(question, advisory) })
+    })
+    .then(function(res){
+      if (!res.ok) throw new Error('Advisory proxy request failed: ' + res.status);
+      return res.json();
+    })
+    .then(function(data){
+      if (!data || !data.reply) throw new Error('Empty advisory proxy response');
+      return data.reply.trim();
+    });
+  }
+
+  // ---------- Live mandi prices (via the same proxy, no key in this file) ----------
+  var MANDI_PROXY_URL = "https://l-unico-fields-proxy.navin3207u.workers.dev/api/mandi-prices";
+
+  // Maps this app's crop keys to the commodity names used on the AGMARKNET/data.gov.in
+  // "Current Daily Price of Various Commodities from Various Markets (Mandi)" dataset.
+  // Names on that dataset can be inconsistent, so treat this as a best-effort lookup.
+  var MANDI_COMMODITY_NAMES = {
+    paddy: "Paddy(Dhan)(Common)", sugarcane: "Sugarcane", cotton: "Cotton",
+    groundnut: "Groundnut", maize: "Maize", ragi: "Ragi(Finger Millet)",
+    banana: "Banana", turmeric: "Turmeric"
+  };
+
+  function fetchLiveMandiPrice(cropKey, district){
+    var el = document.getElementById('liveMandiInfo');
+    if (!el) return;
+    var commodity = MANDI_COMMODITY_NAMES[cropKey];
+    if (!commodity){
+      el.textContent = '';
+      return;
+    }
+    if (MANDI_PROXY_URL.indexOf('YOUR-WORKER-SUBDOMAIN') > -1){
+      el.textContent = '';
+      return;
+    }
+
+    el.textContent = lang === 'ta' ? 'நேரடி சந்தை விலையை பார்க்கிறது…' : 'Checking live mandi prices…';
+
+    var params = new URLSearchParams({ state: 'Tamil Nadu', district: district, commodity: commodity });
+    fetch(MANDI_PROXY_URL + '?' + params.toString())
+      .then(function(res){
+        if (!res.ok) throw new Error('Mandi proxy request failed: ' + res.status);
+        return res.json();
+      })
+      .then(function(data){
+        var records = (data && data.records) || [];
+        if (!records.length){
+          el.textContent = lang === 'ta'
+            ? 'இன்று ' + district + ' மாவட்டத்தில் இந்த பயிருக்கான நேரடி சந்தை தரவு கிடைக்கவில்லை.'
+            : 'No live mandi data found today for this crop in ' + district + '.';
+          return;
+        }
+        var lines = records.slice(0, 3).map(function(r){
+          var price = r.modal_price || r.max_price || r.min_price || '?';
+          return (r.market || '?') + ': \u20b9' + price + '/quintal (' + (r.arrival_date || '') + ')';
+        });
+        var source = lang === 'ta' ? ' (மூலம்: AGMARKNET)' : ' (source: AGMARKNET)';
+        el.innerHTML = '<strong>' + (lang === 'ta' ? 'நேரடி சந்தை விலை' : 'Live mandi price') + ':</strong> ' + lines.join(' \u00b7 ') + source;
+      })
+      .catch(function(err){
+        console.warn('Mandi proxy fetch failed, showing illustrative trend only:', err);
+        el.textContent = lang === 'ta'
+          ? 'நேரடி சந்தை தரவு தற்போது கிடைக்கவில்லை — மேலே உள்ளது மாதிரி போக்கு மட்டும்.'
+          : 'Live mandi data isn\u2019t available right now \u2014 the chart above is illustrative only.';
+      });
+  }
+
+  // ---------- Photo pest/disease check (same proxy pattern as Gemini chat) ----------
+  // Add a POST /api/pest-check route to your existing worker (see worker.js) that takes
+  // { prompt, image, mimeType } (image = base64, no data: prefix) and forwards an
+  // inline_data image part + the prompt to Gemini, returning { reply }. No key lives here.
+  var PEST_PROXY_URL = "https://l-unico-fields-proxy.navin3207u.workers.dev/api/pest-check";
+  var PHOTO_MAX_DIM = 1024;
+
+  var photoInput = document.getElementById('photoInput');
+  var photoCameraInput = document.getElementById('photoCameraInput');
+  var photoCameraBtn = document.getElementById('photoCameraBtn');
+  var photoPreviewWrap = document.getElementById('photoPreviewWrap');
+  var photoPreviewImg = document.getElementById('photoPreviewImg');
+  var photoAnalyzeBtn = document.getElementById('photoAnalyzeBtn');
+  var photoClearBtn = document.getElementById('photoClearBtn');
+  var photoResult = document.getElementById('photoResult');
+  var photoData = null; // { base64, mimeType }
+
+  function resetPhotoUI(){
+    photoData = null;
+    photoInput.value = '';
+    photoCameraInput.value = '';
+    photoPreviewWrap.style.display = 'none';
+    photoAnalyzeBtn.disabled = true;
+    photoResult.innerHTML = '';
+  }
+
+  function showPhotoError(){
+    photoResult.innerHTML = '<div class="entry"><div class="k">'+UI.photoResultLabel[lang]+'</div><div class="v"><span class="flag">'+UI.photoBadFile[lang]+'</span></div></div>';
+  }
+
+  var PHOTO_MAX_BYTES = 15 * 1024 * 1024; // 15MB — generous for a phone photo, guards against hangs on very large files
+
+  function handlePhotoFile(file){
+    if (!file) return; // dialog cancelled or selection cleared — not an error, do nothing
+    if (file.type.indexOf('image/') !== 0){ showPhotoError(); return; }
+    if (file.size > PHOTO_MAX_BYTES){
+      photoResult.innerHTML = '<div class="entry"><div class="k">'+UI.photoResultLabel[lang]+'</div><div class="v"><span class="flag">'+UI.photoTooLarge[lang]+'</span></div></div>';
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var img = new Image();
+      img.onload = function(){
+        var w = img.width, h = img.height;
+        var scale = Math.min(1, PHOTO_MAX_DIM / Math.max(w, h));
+        var cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
+        try {
+          var canvas = document.createElement('canvas');
+          canvas.width = cw; canvas.height = ch;
+          var ctx = canvas.getContext('2d');
+          if (!ctx) throw new Error('2d context unavailable');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+          photoData = { base64: dataUrl.split(',')[1], mimeType: 'image/jpeg' };
+          photoPreviewImg.src = dataUrl;
+          photoPreviewWrap.style.display = 'block';
+          photoAnalyzeBtn.disabled = false;
+          photoResult.innerHTML = '';
+        } catch (err){
+          console.warn('Photo resize failed:', err.message);
+          showPhotoError();
+        }
+      };
+      img.onerror = showPhotoError;
+      img.src = e.target.result;
+    };
+    reader.onerror = showPhotoError;
+    reader.readAsDataURL(file);
+  }
+
+  photoInput.addEventListener('change', function(){
+    handlePhotoFile(photoInput.files && photoInput.files[0]);
+  });
+  photoCameraBtn.addEventListener('click', function(){
+    photoCameraInput.click();
+  });
+  photoCameraInput.addEventListener('change', function(){
+    handlePhotoFile(photoCameraInput.files && photoCameraInput.files[0]);
+  });
+  photoClearBtn.addEventListener('click', resetPhotoUI);
+
+  function pestPhotoPrompt(advisory){
+    var langName = lang === 'ta' ? 'Tamil' : 'English';
+    var context = 'No plot selected yet.';
+    if (advisory){
+      context = 'Crop: ' + advisory.crop.label.en +
+        ' | District: ' + advisory.district +
+        ' | Growth stage: ' + STAGE_LABELS[advisory.stage].en;
+    }
+    return 'You are a crop pest and disease identification assistant for a small farmer in Tamil Nadu, India. ' +
+      'Look closely at the attached photo of a crop leaf, stem, or plant part.\n\n' +
+      'Plot context: ' + context + '\n\n' +
+      'Reply in ' + langName + ', in 4-6 short sentences: ' +
+      '1) name the most likely pest or disease visible, or say the plant looks healthy; ' +
+      '2) give a confidence level (low/medium/high) and why; ' +
+      '3) recommend a suitable treatment: a commonly available pesticide/fungicide type ' +
+      '(e.g. a copper-based fungicide, a neem-based biopesticide, a specific insecticide class) ' +
+      'or an organic/cultural remedy if that is more appropriate; ' +
+      '4) remind them to check the product label for exact dosage and, since dosage varies by ' +
+      'brand and concentration, to confirm with their local Agricultural Extension Officer or ' +
+      'Krishi Vigyan Kendra before applying. ' +
+      'If the photo is too unclear, too dark, or not a plant, say so plainly and ask for a clearer close-up instead of guessing.';
+  }
+
+  function callPestCheck(advisory){
+    if (!photoData) return Promise.reject(new Error('No photo selected'));
+    if (PEST_PROXY_URL.indexOf('YOUR-WORKER-SUBDOMAIN') > -1){
+      return Promise.reject(new Error('Pest-check proxy URL not configured yet'));
+    }
+    return fetch(PEST_PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: pestPhotoPrompt(advisory), image: photoData.base64, mimeType: photoData.mimeType })
+    })
+    .then(function(res){
+      if (!res.ok) throw new Error('Pest-check proxy request failed: ' + res.status);
+      return res.json();
+    })
+    .then(function(data){
+      if (!data || !data.reply) throw new Error('Empty pest-check proxy response');
+      return data.reply.trim();
+    });
+  }
+
+  function pestFallbackText(advisory){
+    var note = UI.photoOffline[lang];
+    if (advisory) return note + ' ' + advisory.crop.pest[advisory.stage][lang];
+    return note;
+  }
+
+  photoAnalyzeBtn.addEventListener('click', function(){
+    if (!photoData) return;
+    if (!lastAdvisory){ lastAdvisory = buildAdvisory(); }
+    photoAnalyzeBtn.disabled = true;
+    photoClearBtn.disabled = true;
+    photoResult.innerHTML = '<p class="hint">' + UI.photoAnalyzing[lang] + '</p>';
+
+    callPestCheck(lastAdvisory)
+      .then(function(reply){
+        photoResult.innerHTML = '<div class="entry"><div class="k">'+UI.photoResultLabel[lang]+'</div><div class="v">'+reply+'</div></div>';
+      })
+      .catch(function(err){
+        console.warn('Pest-check proxy unavailable, showing offline guidance:', err.message);
+        photoResult.innerHTML = '<div class="entry"><div class="k">'+UI.photoResultLabel[lang]+'</div><div class="v">'+pestFallbackText(lastAdvisory)+'</div></div>';
+      })
+      .then(function(){
+        photoAnalyzeBtn.disabled = !photoData;
+        photoClearBtn.disabled = false;
+      });
+  });
+
+  // ---------- Share advisory (WhatsApp text link / native browser Print-to-PDF) ----------
+  function buildShareText(){
+    var lines = [];
+    lines.push('L UNICO Fields \u2014 ' + UI.ledgerHeading[lang]);
+    var contextEl = document.getElementById('ledgerContext');
+    if (contextEl && contextEl.textContent) lines.push(contextEl.textContent);
+    lines.push('');
+    Array.prototype.forEach.call(document.querySelectorAll('#ledger .entry'), function(entry){
+      var k = entry.querySelector('.k'); var v = entry.querySelector('.v');
+      if (k && v) lines.push(k.textContent + ': ' + v.textContent);
+    });
+    var photoResultValue = photoResult ? photoResult.querySelector('.v') : null;
+    if (photoResultValue && photoResultValue.textContent.trim()){
+      lines.push('');
+      lines.push(UI.photoResultLabel[lang] + ': ' + photoResultValue.textContent.trim());
+    }
+    return lines.join('\n');
+  }
+
+  var shareWhatsAppBtn = document.getElementById('shareWhatsAppBtn');
+  if (shareWhatsAppBtn){
+    shareWhatsAppBtn.addEventListener('click', function(){
+      window.open('https://wa.me/?text=' + encodeURIComponent(buildShareText()), '_blank');
+    });
+  }
+
+  function preparePrintView(){
+    var meta = document.getElementById('printMeta');
+    var contextEl = document.getElementById('ledgerContext');
+    var dateStr = new Date().toLocaleDateString(lang === 'ta' ? 'ta-IN' : 'en-IN', {year:'numeric', month:'long', day:'numeric'});
+    if (meta) meta.textContent = (contextEl && contextEl.textContent ? contextEl.textContent + ' \u00b7 ' : '') + UI.printGeneratedOn[lang] + ' ' + dateStr;
+
+    var photoSectionEl = document.getElementById('photoSection');
+    if (photoSectionEl){
+      var hasPhotoResult = !!(photoResult && photoResult.textContent.trim());
+      photoSectionEl.classList.toggle('print-hide', !hasPhotoResult);
+    }
+  }
+
+  var savePdfBtn = document.getElementById('savePdfBtn');
+  if (savePdfBtn){
+    savePdfBtn.addEventListener('click', function(){
+      preparePrintView();
+      window.print();
+    });
+  }
+
+  // ---------- Chat ----------
+  var chatLog = document.getElementById('chatLog');
+  function addMsg(whoLabel, text){
+    var m = document.createElement('div'); m.className = 'msg ' + (whoLabel === UI.chatYou[lang] ? 'you' : 'assistant');
+    m.innerHTML = '<span class="who">'+whoLabel+'</span>'+text;
+    chatLog.appendChild(m);
+    chatLog.scrollTop = chatLog.scrollHeight;
+    return m;
+  }
+
+  function answer(q){
+    if (!lastAdvisory){
+      lastAdvisory = buildAdvisory(); // silently use current form defaults so chat always has context
+    }
+    var c = lastAdvisory.crop, ql = q.toLowerCase();
+    var isIrrigation = ql.indexOf('irrigat') > -1 || ql.indexOf('water') > -1 || q.indexOf('பாசன') > -1 || q.indexOf('நீர்') > -1;
+    var isFertilizer = ql.indexOf('fertil') > -1 || ql.indexOf('nutrient') > -1 || ql.indexOf('manure') > -1 || q.indexOf('உரம') > -1 || q.indexOf('எரு') > -1;
+    var isPest = ql.indexOf('pest') > -1 || ql.indexOf('insect') > -1 || ql.indexOf('disease') > -1 || q.indexOf('பூச்சி') > -1 || q.indexOf('நோய்') > -1;
+    var isPrice = ql.indexOf('price') > -1 || ql.indexOf('market') > -1 || ql.indexOf('sell') > -1 || q.indexOf('விலை') > -1 || q.indexOf('சந்தை') > -1 || q.indexOf('விற்') > -1;
+    var isHarvest = ql.indexOf('harvest') > -1 || ql.indexOf('sow') > -1 || ql.indexOf('plant') > -1 || q.indexOf('அறுவடை') > -1 || q.indexOf('விதை') > -1 || q.indexOf('நடவு') > -1;
+    var isWeather = ql.indexOf('weather') > -1 || ql.indexOf('rain') > -1 || q.indexOf('மழை') > -1 || q.indexOf('வானிலை') > -1;
+
+    if (isIrrigation) return c.irrigation[lastAdvisory.band][lang];
+    if (isFertilizer) return c.fertilizer[lastAdvisory.soil][lang];
+    if (isPest) return c.pest[lastAdvisory.stage][lang];
+    if (isPrice) return UI.answerPrice[lang];
+    if (isHarvest) return c.window[lang];
+    if (isWeather) return fmt(UI.answerWeather[lang], {mm: document.getElementById('rainfall').value, band: BAND_LABELS[lastAdvisory.band][lang]});
+    return fmt(UI.answerFallback[lang], {crop: c.label[lang].toLowerCase()});
+  }
+
+  document.getElementById('chatForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var input = document.getElementById('chatInput');
+    var submitBtn = document.getElementById('chatSubmitBtn');
+    var q = input.value.trim();
+    if (!q) return;
+    addMsg(UI.chatYou[lang], q);
+    input.value = '';
+    if (!lastAdvisory){ lastAdvisory = buildAdvisory(); }
+
+    submitBtn.disabled = true;
+    input.disabled = true;
+    var thinkingMsg = addMsg(UI.chatAssistant[lang], UI.chatThinking[lang]);
+
+    callGemini(q, lastAdvisory)
+      .then(function(reply){
+        thinkingMsg.innerHTML = '<span class="who">'+UI.chatAssistant[lang]+'</span>'+reply;
+      })
+      .catch(function(err){
+        console.warn('Gemini call unavailable, falling back to local advisory:', err.message);
+        thinkingMsg.innerHTML = '<span class="who">'+UI.chatAssistant[lang]+'</span>'+answer(q);
+      })
+      .then(function(){
+        submitBtn.disabled = false;
+        input.disabled = false;
+        input.focus();
+        chatLog.scrollTop = chatLog.scrollHeight;
+      });
+  });
+
+  // ---------- Voice input (native Web Speech API — no external dependency) ----------
+  var voiceBtn = document.getElementById('voiceBtn');
+  var SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var recognition = null;
+  var isListening = false;
+
+  if (!SpeechRecognitionCtor){
+    if (voiceBtn) voiceBtn.style.display = 'none';
+  } else {
+    recognition = new SpeechRecognitionCtor();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+
+    function endListening(){
+      isListening = false;
+      voiceBtn.classList.remove('listening');
+      voiceBtn.innerHTML = '&#127908;';
+      voiceBtn.setAttribute('aria-label', UI.voiceInputLabel[lang]);
+      document.getElementById('chatInput').placeholder = UI.chatInputPlaceholder[lang];
+    }
+
+    recognition.onstart = function(){
+      isListening = true;
+      voiceBtn.classList.add('listening');
+      voiceBtn.innerHTML = '&#9209;';
+      voiceBtn.setAttribute('aria-label', UI.voiceListening[lang]);
+      document.getElementById('chatInput').placeholder = UI.voiceListening[lang];
+    };
+
+    recognition.onresult = function(e){
+      var transcript = '', isFinal = false;
+      for (var i = e.resultIndex; i < e.results.length; i++){
+        transcript += e.results[i][0].transcript;
+        if (e.results[i].isFinal) isFinal = true;
+      }
+      var chatInputEl = document.getElementById('chatInput');
+      chatInputEl.value = transcript;
+      if (isFinal && transcript.trim()){
+        setTimeout(function(){
+          var chatFormEl = document.getElementById('chatForm');
+          if (chatFormEl.requestSubmit) chatFormEl.requestSubmit();
+          else chatFormEl.dispatchEvent(new Event('submit', {cancelable:true, bubbles:true}));
+        }, 300);
+      }
+    };
+
+    recognition.onerror = function(e){
+      console.warn('Speech recognition error:', e.error);
+      endListening();
+    };
+    recognition.onend = endListening;
+
+    voiceBtn.addEventListener('click', function(){
+      if (isListening){ recognition.stop(); return; }
+      recognition.lang = (lang === 'ta') ? 'ta-IN' : 'en-IN';
+      isListening = true; // set optimistically so a fast double-tap stops rather than double-starts
+      try { recognition.start(); }
+      catch (err){ isListening = false; console.warn('Could not start recognition:', err.message); }
+    });
+  }
+
+  // ---------- Theme ----------
+  var themeBtn = document.getElementById('themeBtn');
+  themeBtn.addEventListener('click', function(){
+    var root = document.documentElement;
+    var current = root.getAttribute('data-theme');
+    root.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+  });
+
+  // ---------- Language switching ----------
+  function setText(id, dict){
+    var el = document.getElementById(id);
+    if (el) el.textContent = dict[lang];
+  }
+  function setOptText(id, dict){
+    var el = document.getElementById(id);
+    if (el) el.textContent = dict[lang];
+  }
+
+  var langEnBtn = document.getElementById('langEnBtn');
+  var langTaBtn = document.getElementById('langTaBtn');
+
+  function applyLang(l, skipRebuild){
+    lang = l;
+    setStoredLang(l);
+    document.documentElement.lang = (l === 'ta') ? 'ta' : 'en';
+
+    langEnBtn.classList.toggle('active', l === 'en');
+    langTaBtn.classList.toggle('active', l === 'ta');
+
+    setText('taglineText', UI.tagline);
+    themeBtn.textContent = UI.themeToggle[lang];
+    setText('plotHeading', UI.plotHeading);
+    setText('labelDistrict', UI.labelDistrict);
+    setText('labelCrop', UI.labelCrop);
+    setText('labelSeason', UI.labelSeason);
+    setText('labelSoil', UI.labelSoil);
+    setText('labelStage', UI.labelStage);
+    setText('labelRainfall', UI.labelRainfall);
+    document.getElementById('genBtn').textContent = UI.genBtn[lang];
+    setText('ledgerHeading', UI.ledgerHeading);
+    setText('trendHeading', UI.trendHeading);
+    setText('photoHeading', UI.photoHeading);
+    setText('photoHint', UI.photoHint);
+    setText('labelPhoto', UI.labelPhoto);
+    document.getElementById('photoAnalyzeBtn').textContent = UI.photoAnalyzeBtn[lang];
+    document.getElementById('photoCameraBtn').textContent = UI.photoCameraBtn[lang];
+    document.getElementById('photoClearBtn').textContent = UI.photoClearBtn[lang];
+    setText('askHeading', UI.askHeading);
+    setText('askHint', UI.askHint);
+    document.getElementById('chatInput').placeholder = UI.chatInputPlaceholder[lang];
+    document.getElementById('chatSubmitBtn').textContent = UI.askBtn[lang];
+    document.getElementById('shareWhatsAppBtn').textContent = UI.shareWhatsAppBtn[lang];
+    document.getElementById('savePdfBtn').textContent = UI.savePdfBtn[lang];
+    if (voiceBtn && SpeechRecognitionCtor){
+      voiceBtn.setAttribute('aria-label', isListening ? UI.voiceListening[lang] : UI.voiceInputLabel[lang]);
+      if (!isListening) document.getElementById('chatInput').placeholder = UI.chatInputPlaceholder[lang];
+    }
+
+    setOptText('optSeasonKharif', SEASON_LABELS.kharif);
+    setOptText('optSeasonRabi', SEASON_LABELS.rabi);
+    setOptText('optSeasonSummer', SEASON_LABELS.summer);
+    setOptText('optSoilAlluvial', SOIL_LABELS.alluvial);
+    setOptText('optSoilRed', SOIL_LABELS.red);
+    setOptText('optSoilBlack', SOIL_LABELS.black);
+    setOptText('optSoilSandy', SOIL_LABELS.sandy);
+    setOptText('optSoilLaterite', SOIL_LABELS.laterite);
+    setOptText('optStageSowing', STAGE_LABELS.sowing);
+    setOptText('optStageVegetative', STAGE_LABELS.vegetative);
+    setOptText('optStageFlowering', STAGE_LABELS.flowering);
+    setOptText('optStageMaturity', STAGE_LABELS.maturity);
+
+    populateSelects();
+
+    if (!skipRebuild && lastAdvisory){
+      lastAdvisory = buildAdvisory();
+    }
+  }
+
+  langEnBtn.addEventListener('click', function(){ applyLang('en'); });
+  langTaBtn.addEventListener('click', function(){ applyLang('ta'); });
+
+  // Initial render (also populates the district/crop selects for the first time)
+  applyLang(lang, true);
+
+})();
+</script>
+
+<script>
+  // ---- Scroll progress rendered as a growing, then harvested, field of crop ----
+  (function(){
+    var track = document.getElementById('cpStalks');
+    var container = document.getElementById('cropProgress');
+    if (!track || !container) return;
+
+    var N = 48;               // number of stalks across the bar
+    var VBW = 1920;            // must match the svg viewBox width
+    var spacing = VBW / N;
+    var stalks = [];
+
+    for (var i = 0; i < N; i++){
+      var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('class', 'cp-stalk');
+      var use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+      use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#cpStalk');
+      use.setAttribute('href', '#cpStalk');
+      use.setAttribute('x', (i * spacing + spacing / 2 - 5).toFixed(1));
+      use.setAttribute('y', '0');
+      use.setAttribute('width', '10');
+      use.setAttribute('height', '40');
+      g.appendChild(use);
+      track.appendChild(g);
+      stalks.push(g);
+    }
+
+    var ticking = false;
+    function update(){
+      ticking = false;
+      var maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      var progress = maxScroll > 0 ? Math.min(Math.max(window.scrollY / maxScroll, 0), 1) : 0;
+      // the field finishes growing a little before the true bottom, so the
+      // last stretch of the page reads as a fully grown, ready-to-harvest field
+      var p2 = Math.min(progress / 0.92, 1);
+      for (var i = 0; i < N; i++){
+        var threshold = i / N;
+        var growth = Math.min(Math.max((p2 - threshold) * N, 0), 1);
+        stalks[i].style.transform = 'scaleY(' + growth.toFixed(3) + ')';
+      }
+      container.classList.toggle('cp-harvest', progress > 0.985);
+    }
+    function onScrollOrResize(){
+      if (!ticking){ window.requestAnimationFrame(update); ticking = true; }
+    }
+    window.addEventListener('scroll', onScrollOrResize, {passive:true});
+    window.addEventListener('resize', onScrollOrResize);
+    update();
+  })();
+</script>
+</body>
+</html>

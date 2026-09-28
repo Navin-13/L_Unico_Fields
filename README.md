@@ -1,6 +1,6 @@
 # 🌾 L UNICO Fields — Crop Advisory
 
-A bilingual (English / தமிழ்), single-page crop advisory web app for small farmers in **Tamil Nadu, India**. Pick your district, crop, season, soil, growth stage and recent rainfall, and get an instant advisory on irrigation, fertilizer, pests and harvest timing. You can also check a leaf photo for pests and diseases, see market price context, and ask questions by text or voice.
+A bilingual (English / தமிழ்), single - page crop advisory web app for small farmers in **Tamil Nadu, India**. Pick your district, crop, season, soil, growth stage and recent rainfall, and get an instant advisory on irrigation, fertilizer, pests and harvest timing. You can also check a leaf photo for pests and diseases, see market price context, and ask questions by text or voice.
 
 **Live site:** https://l-unico-fields-6.vercel.app/
 
